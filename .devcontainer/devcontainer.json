@@ -1,0 +1,19 @@
+{
+  "name": "Platform Hopper Dev",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/azure-cli:1": {}
+  },
+  "forwardPorts": [5173, 3000],
+  "postCreateCommand": "npm install --prefix game && npm install --prefix api",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "ms-azuretools.vscode-docker",
+        "ms-azuretools.vscode-azurestaticwebapps"
+      ]
+    }
+  }
+}
