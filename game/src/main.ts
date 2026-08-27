@@ -12,10 +12,14 @@ const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   title: 'CCA-Survive',
   parent: 'app',
-  width: 960,
-  height: 540,
   backgroundColor: '#4488aa',
   pixelArt: true,
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: 960,
+    height: 540,
+  },
   physics: {
     default: 'arcade',
     arcade: {
