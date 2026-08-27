@@ -1,13 +1,17 @@
 import Phaser from 'phaser';
 
-export const COLLECTIBLE_VALUE = 10;
+export const REGULAR_TOKEN_TEXTURE_KEYS = ['token-coffee', 'token-feedback', 'token-raise', 'token-checkmark'] as const;
+export const PROMOTION_TOKEN_TEXTURE_KEY = 'token-promotion';
 
 export class Collectible extends Phaser.Physics.Arcade.Sprite {
-  constructor(scene: Phaser.Scene, x: number, y: number) {
-    super(scene, x, y, 'collectible');
+  readonly isPromotion: boolean;
+
+  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, isPromotion = false) {
+    super(scene, x, y, textureKey);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
+    this.isPromotion = isPromotion;
 
     scene.tweens.add({
       targets: this,

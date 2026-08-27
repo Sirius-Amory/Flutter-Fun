@@ -1,52 +1,89 @@
+import { RANKS, FINAL_RANK_INDEX, type RankConfig } from '../data/rankConfig';
+
 export interface KeyValueStore {
   get(key: string): unknown;
   set(key: string, value: unknown): unknown;
 }
 
 const KEYS = {
-  score: 'score',
-  lives: 'lives',
-  levelIndex: 'levelIndex',
+  distance: 'distance',
+  rankIndex: 'rankIndex',
+  tokens: 'tokens',
+  hits: 'hits',
 } as const;
 
-export const STARTING_LIVES = 3;
+export const MAX_HITS = 5;
 
 // Thin wrapper around whatever key/value store is handed in (Phaser's scene registry in
 // production, a plain in-memory fake in tests) so gameplay code never touches Phaser directly.
+// Single source of truth for run progress - also the shape that will eventually be posted to the
+// leaderboard API (future phase).
 export class GameState {
   constructor(private store: KeyValueStore) {}
 
   reset(): void {
-    this.store.set(KEYS.score, 0);
-    this.store.set(KEYS.lives, STARTING_LIVES);
-    this.store.set(KEYS.levelIndex, 0);
+    this.store.set(KEYS.distance, 0);
+    this.store.set(KEYS.rankIndex, 0);
+    this.store.set(KEYS.tokens, 0);
+    this.store.set(KEYS.hits, 0);
   }
 
-  get score(): number {
-    return (this.store.get(KEYS.score) as number | undefined) ?? 0;
+  get distance(): number {
+    return (this.store.get(KEYS.distance) as number | undefined) ?? 0;
   }
 
-  addScore(amount: number): number {
-    const next = this.score + amount;
-    this.store.set(KEYS.score, next);
+  // Distance is a high-water mark of progress - moving backward never reduces it.
+  advanceDistance(traveled: number): number {
+    const next = Math.max(this.distance, traveled);
+    this.store.set(KEYS.distance, next);
     return next;
   }
 
-  get lives(): number {
-    return (this.store.get(KEYS.lives) as number | undefined) ?? STARTING_LIVES;
+  get rankIndex(): number {
+    return (this.store.get(KEYS.rankIndex) as number | undefined) ?? 0;
   }
 
-  loseLife(): number {
-    const next = Math.max(0, this.lives - 1);
-    this.store.set(KEYS.lives, next);
+  set rankIndex(value: number) {
+    this.store.set(KEYS.rankIndex, value);
+  }
+
+  get rank(): RankConfig {
+    return RANKS[Math.min(this.rankIndex, FINAL_RANK_INDEX)];
+  }
+
+  get age(): number {
+    return this.rank.age;
+  }
+
+  get isRetired(): boolean {
+    return this.rankIndex >= FINAL_RANK_INDEX;
+  }
+
+  get tokens(): number {
+    return (this.store.get(KEYS.tokens) as number | undefined) ?? 0;
+  }
+
+  addToken(): number {
+    const next = this.tokens + 1;
+    this.store.set(KEYS.tokens, next);
     return next;
   }
 
-  get levelIndex(): number {
-    return (this.store.get(KEYS.levelIndex) as number | undefined) ?? 0;
+  resetTokens(): void {
+    this.store.set(KEYS.tokens, 0);
   }
 
-  set levelIndex(value: number) {
-    this.store.set(KEYS.levelIndex, value);
+  get hits(): number {
+    return (this.store.get(KEYS.hits) as number | undefined) ?? 0;
+  }
+
+  registerHit(): number {
+    const next = Math.min(MAX_HITS, this.hits + 1);
+    this.store.set(KEYS.hits, next);
+    return next;
+  }
+
+  get isDefeated(): boolean {
+    return this.hits >= MAX_HITS;
   }
 }

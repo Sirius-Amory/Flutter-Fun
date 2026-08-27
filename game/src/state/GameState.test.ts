@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { GameState, STARTING_LIVES, type KeyValueStore } from './GameState';
+import { GameState, MAX_HITS, type KeyValueStore } from './GameState';
+import { RANKS, FINAL_RANK_INDEX } from '../data/rankConfig';
 
 function createFakeStore(): KeyValueStore {
   const map = new Map<string, unknown>();
@@ -17,33 +18,50 @@ describe('GameState', () => {
 
   beforeEach(() => {
     state = new GameState(createFakeStore());
+    state.reset();
   });
 
   it('resets to starting values', () => {
-    state.reset();
-    expect(state.score).toBe(0);
-    expect(state.lives).toBe(STARTING_LIVES);
-    expect(state.levelIndex).toBe(0);
+    expect(state.distance).toBe(0);
+    expect(state.rankIndex).toBe(0);
+    expect(state.tokens).toBe(0);
+    expect(state.hits).toBe(0);
+    expect(state.age).toBe(RANKS[0].age);
   });
 
-  it('accumulates score across calls', () => {
-    state.reset();
-    state.addScore(10);
-    state.addScore(5);
-    expect(state.score).toBe(15);
+  it('tracks distance as a high-water mark', () => {
+    state.advanceDistance(500);
+    state.advanceDistance(300);
+    expect(state.distance).toBe(500);
+    state.advanceDistance(900);
+    expect(state.distance).toBe(900);
   });
 
-  it('never drops lives below zero', () => {
-    state.reset();
-    for (let i = 0; i < STARTING_LIVES + 2; i += 1) {
-      state.loseLife();
+  it('accumulates tokens and can reset them on promotion', () => {
+    state.addToken();
+    state.addToken();
+    expect(state.tokens).toBe(2);
+    state.resetTokens();
+    expect(state.tokens).toBe(0);
+  });
+
+  it('derives age and rank from rankIndex', () => {
+    state.rankIndex = 2;
+    expect(state.rank).toBe(RANKS[2]);
+    expect(state.age).toBe(RANKS[2].age);
+  });
+
+  it('is retired once the final rank is reached', () => {
+    expect(state.isRetired).toBe(false);
+    state.rankIndex = FINAL_RANK_INDEX;
+    expect(state.isRetired).toBe(true);
+  });
+
+  it('never raises hits above MAX_HITS and reports defeat', () => {
+    for (let i = 0; i < MAX_HITS + 2; i += 1) {
+      state.registerHit();
     }
-    expect(state.lives).toBe(0);
-  });
-
-  it('tracks the current level index', () => {
-    state.reset();
-    state.levelIndex = 2;
-    expect(state.levelIndex).toBe(2);
+    expect(state.hits).toBe(MAX_HITS);
+    expect(state.isDefeated).toBe(true);
   });
 });

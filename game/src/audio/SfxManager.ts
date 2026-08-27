@@ -1,4 +1,4 @@
-export type SfxName = 'jump' | 'collect' | 'stomp' | 'hit' | 'levelComplete' | 'gameOver';
+export type SfxName = 'jump' | 'collect' | 'parry' | 'hit' | 'promote' | 'retire' | 'gameOver';
 
 interface Tone {
   freq: number;
@@ -13,12 +13,18 @@ const PATTERNS: Record<SfxName, Tone[]> = {
     { freq: 880, duration: 0.06, type: 'square' },
     { freq: 1320, duration: 0.08, type: 'square', delay: 0.06 },
   ],
-  stomp: [{ freq: 180, duration: 0.1, type: 'square' }],
+  parry: [{ freq: 180, duration: 0.1, type: 'square' }],
   hit: [{ freq: 140, duration: 0.18, type: 'sawtooth' }],
-  levelComplete: [
+  promote: [
     { freq: 523, duration: 0.1 },
     { freq: 659, duration: 0.1, delay: 0.1 },
     { freq: 784, duration: 0.2, delay: 0.2 },
+  ],
+  retire: [
+    { freq: 523, duration: 0.12 },
+    { freq: 659, duration: 0.12, delay: 0.12 },
+    { freq: 784, duration: 0.12, delay: 0.24 },
+    { freq: 1046, duration: 0.3, delay: 0.36 },
   ],
   gameOver: [
     { freq: 392, duration: 0.15 },

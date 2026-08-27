@@ -1,48 +1,66 @@
 import Phaser from 'phaser';
 import { eventBus, GameEvents } from '../events';
+import { GameState, MAX_HITS } from '../state/GameState';
+import type { RankConfig } from '../data/rankConfig';
 
-interface HUDSceneData {
-  levelName: string;
-  levelIndex: number;
-  totalLevels: number;
+interface TokensChangedPayload {
+  count: number;
+  needed: number;
 }
 
 export class HUDScene extends Phaser.Scene {
-  private scoreText!: Phaser.GameObjects.Text;
-  private livesText!: Phaser.GameObjects.Text;
+  private ageText!: Phaser.GameObjects.Text;
+  private rankText!: Phaser.GameObjects.Text;
+  private tokensText!: Phaser.GameObjects.Text;
+  private hitsText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'HUD' });
   }
 
-  create(data: HUDSceneData): void {
-    this.scoreText = this.add
-      .text(16, 12, 'Score: 0', { fontSize: '20px', color: '#ffffff' })
+  create(): void {
+    const state = new GameState(this.registry);
+
+    this.ageText = this.add
+      .text(16, 12, `Age: ${state.age}`, { fontSize: '22px', color: '#ffffff', fontStyle: 'bold' })
       .setScrollFactor(0)
       .setDepth(100);
-    this.livesText = this.add
-      .text(16, 38, 'Lives: 3', { fontSize: '20px', color: '#ffffff' })
+    this.rankText = this.add
+      .text(16, 42, `${state.rank.id} - ${state.rank.label}`, { fontSize: '16px', color: '#cccccc' })
       .setScrollFactor(0)
       .setDepth(100);
-    this.add
-      .text(this.scale.width - 16, 12, `${data.levelName} (${data.levelIndex + 1}/${data.totalLevels})`, {
-        fontSize: '18px',
-        color: '#ffffff',
+    this.tokensText = this.add
+      .text(this.scale.width - 16, 12, `Tokens: ${state.tokens}/${state.rank.tokensToPromote}`, {
+        fontSize: '16px',
+        color: '#ffd23f',
       })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(100);
+    this.hitsText = this.add
+      .text(this.scale.width - 16, 36, `Hits: ${state.hits}/${MAX_HITS}`, { fontSize: '16px', color: '#ff6b6b' })
+      .setOrigin(1, 0)
+      .setScrollFactor(0)
+      .setDepth(100);
 
-    const onScoreChanged = (score: number) => this.scoreText.setText(`Score: ${score}`);
-    const onLivesChanged = (lives: number) => this.livesText.setText(`Lives: ${lives}`);
+    const onAgeChanged = (age: number) => this.ageText.setText(`Age: ${age}`);
+    const onRankChanged = (rank: RankConfig) => this.rankText.setText(`${rank.id} - ${rank.label}`);
+    const onTokensChanged = ({ count, needed }: TokensChangedPayload) =>
+      this.tokensText.setText(`Tokens: ${count}/${needed}`);
+    const onHitsChanged = (hits: number) => this.hitsText.setText(`Hits: ${hits}/${MAX_HITS}`);
 
-    eventBus.on(GameEvents.ScoreChanged, onScoreChanged);
-    eventBus.on(GameEvents.LivesChanged, onLivesChanged);
+    eventBus.on(GameEvents.AgeChanged, onAgeChanged);
+    eventBus.on(GameEvents.RankChanged, onRankChanged);
+    eventBus.on(GameEvents.TokensChanged, onTokensChanged);
+    eventBus.on(GameEvents.HitsChanged, onHitsChanged);
 
     // eventBus outlives this scene instance, so listeners must be removed explicitly.
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      eventBus.off(GameEvents.ScoreChanged, onScoreChanged);
-      eventBus.off(GameEvents.LivesChanged, onLivesChanged);
+      eventBus.off(GameEvents.AgeChanged, onAgeChanged);
+      eventBus.off(GameEvents.RankChanged, onRankChanged);
+      eventBus.off(GameEvents.TokensChanged, onTokensChanged);
+      eventBus.off(GameEvents.HitsChanged, onHitsChanged);
     });
   }
 }
+
