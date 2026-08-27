@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
+import { getCharacterById, type CharacterDef } from '../data/characters';
 
 const MOVE_SPEED = 200;
 const JUMP_VELOCITY = -480;
 const MAX_JUMPS = 2;
 const PARRY_KEY_CODES = ['SHIFT', 'X'];
-const PARRY_TINT = 0x9be8ff;
+// Display height in px that every character (regardless of its source art's native resolution)
+// is scaled to, so swapping character packs never requires re-tuning gameplay feel.
+const PLAYER_TARGET_HEIGHT = 42;
 
 type WasdKeys = {
   W: Phaser.Input.Keyboard.Key;
@@ -13,24 +16,56 @@ type WasdKeys = {
   D: Phaser.Input.Keyboard.Key;
 };
 
+// Registers each character's pose-based anims once (they're global to the Game instance and
+// would otherwise throw "animation already exists" when Player is reconstructed on scene restart).
+function ensureCharacterAnimations(scene: Phaser.Scene, character: CharacterDef): void {
+  if (scene.anims.exists(`${character.id}-idle`)) return;
+
+  const frame = (key: string) => ({ key });
+  scene.anims.create({ key: `${character.id}-idle`, frames: [frame(`${character.id}-idle`)], frameRate: 1, repeat: -1 });
+  scene.anims.create({
+    key: `${character.id}-walk`,
+    frames: [frame(`${character.id}-walk1`), frame(`${character.id}-walk2`)],
+    frameRate: 7,
+    repeat: -1,
+  });
+  scene.anims.create({ key: `${character.id}-jump`, frames: [frame(`${character.id}-jump`)], frameRate: 1, repeat: -1 });
+  scene.anims.create({ key: `${character.id}-fall`, frames: [frame(`${character.id}-fall`)], frameRate: 1, repeat: -1 });
+  scene.anims.create({ key: `${character.id}-kick`, frames: [frame(`${character.id}-kick`)], frameRate: 1, repeat: -1 });
+  scene.anims.create({ key: `${character.id}-hurt`, frames: [frame(`${character.id}-hurt`)], frameRate: 1, repeat: -1 });
+}
+
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd: WasdKeys;
   private parryKeys: Phaser.Input.Keyboard.Key[];
+  private characterId: string;
   private jumpsRemaining = MAX_JUMPS;
   private isInvincible = false;
+  private baseScale = 1;
   private rankScale = 1;
   private parryWindowSeconds: number;
   private parryTimeRemaining = 0;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, initialParryWindowSeconds: number) {
-    super(scene, x, y, 'player');
+  constructor(scene: Phaser.Scene, x: number, y: number, initialParryWindowSeconds: number, characterId: string) {
+    const character = getCharacterById(characterId);
+    super(scene, x, y, `${character.id}-idle`);
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
+    this.characterId = character.id;
+    ensureCharacterAnimations(scene, character);
+
+    // this.width/height reflect the native loaded texture at this point (scale is still 1),
+    // so they're the right basis for both the display scale and the unscaled hitbox.
+    this.baseScale = PLAYER_TARGET_HEIGHT / this.height;
+    const bodyWidth = this.width * 0.5;
+    const bodyHeight = this.height * 0.85;
+    this.setSize(bodyWidth, bodyHeight);
+    this.setOffset((this.width - bodyWidth) / 2, this.height - bodyHeight);
+    this.setScale(this.baseScale);
+
     this.setBounce(0.05);
-    this.setSize(20, 28);
-    this.setOffset(6, 4);
     this.setDepth(10);
     this.parryWindowSeconds = initialParryWindowSeconds;
 
@@ -73,12 +108,17 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     } else if (this.parryTimeRemaining > 0) {
       this.parryTimeRemaining = Math.max(0, this.parryTimeRemaining - deltaMs / 1000);
     }
-    this.setTint(this.parryTimeRemaining > 0 ? PARRY_TINT : 0xffffff);
 
-    // simple squash/stretch for a bit of game feel while airborne, layered on the current rank scale
-    const squashX = body.blocked.down ? 1 : 0.9;
-    const squashY = body.blocked.down ? 1 : 1.1;
-    this.setScale(this.rankScale * squashX, this.rankScale * squashY);
+    this.setScale(this.baseScale * this.rankScale);
+    this.play(`${this.characterId}-${this.pickAnimationKey(body, left || right)}`, true);
+  }
+
+  // Highest-priority state wins: getting hit/parrying is more important to read than locomotion.
+  private pickAnimationKey(body: Phaser.Physics.Arcade.Body, movingHorizontally: boolean): string {
+    if (this.isInvincible) return 'hurt';
+    if (this.parryTimeRemaining > 0) return 'kick';
+    if (!body.blocked.down) return body.velocity.y < 0 ? 'jump' : 'fall';
+    return movingHorizontally ? 'walk' : 'idle';
   }
 
   get isParrying(): boolean {
@@ -115,4 +155,5 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     });
   }
 }
+
 

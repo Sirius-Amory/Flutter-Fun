@@ -62,7 +62,13 @@ export class SurviveScene extends Phaser.Scene {
     this.physics.add.existing(groundTile, true);
     ground.add(groundTile);
 
-    this.player = new Player(this, PLAYER_START_X, PLAYER_START_Y, this.state.rank.parryWindowSeconds);
+    this.player = new Player(
+      this,
+      PLAYER_START_X,
+      PLAYER_START_Y,
+      this.state.rank.parryWindowSeconds,
+      this.state.characterId
+    );
     this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
 
     this.obstacles = this.physics.add.group({ allowGravity: false });

@@ -1,6 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { GameState, MAX_HITS, type KeyValueStore } from './GameState';
 import { RANKS, FINAL_RANK_INDEX } from '../data/rankConfig';
+import { DEFAULT_CHARACTER_ID } from '../data/characters';
 
 function createFakeStore(): KeyValueStore {
   const map = new Map<string, unknown>();
@@ -63,5 +64,12 @@ describe('GameState', () => {
     }
     expect(state.hits).toBe(MAX_HITS);
     expect(state.isDefeated).toBe(true);
+  });
+
+  it('defaults characterId and keeps it across reset()', () => {
+    expect(state.characterId).toBe(DEFAULT_CHARACTER_ID);
+    state.characterId = 'zombie';
+    state.reset();
+    expect(state.characterId).toBe('zombie');
   });
 });

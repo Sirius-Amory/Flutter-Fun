@@ -8,23 +8,12 @@ import { REGULAR_TOKEN_TEXTURE_KEYS, PROMOTION_TOKEN_TEXTURE_KEY } from '../enti
 export function generateTextures(scene: Phaser.Scene): void {
   const g = scene.add.graphics();
 
-  drawPlayerTexture(g);
   drawPlatformTexture(g);
   drawParticleTexture(g);
   drawObstacleTextures(g);
   drawTokenTextures(g);
 
   g.destroy();
-}
-
-function drawPlayerTexture(g: Phaser.GameObjects.Graphics): void {
-  g.clear();
-  g.fillStyle(0xff6b6b, 1);
-  g.fillRoundedRect(0, 0, 32, 32, 10);
-  g.fillStyle(0x2b2b2b, 1);
-  g.fillCircle(11, 13, 3);
-  g.fillCircle(21, 13, 3);
-  g.generateTexture('player', 32, 32);
 }
 
 function drawPlatformTexture(g: Phaser.GameObjects.Graphics): void {

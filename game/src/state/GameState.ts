@@ -1,4 +1,5 @@
 import { RANKS, FINAL_RANK_INDEX, type RankConfig } from '../data/rankConfig';
+import { DEFAULT_CHARACTER_ID } from '../data/characters';
 
 export interface KeyValueStore {
   get(key: string): unknown;
@@ -10,6 +11,7 @@ const KEYS = {
   rankIndex: 'rankIndex',
   tokens: 'tokens',
   hits: 'hits',
+  characterId: 'characterId',
 } as const;
 
 export const MAX_HITS = 5;
@@ -85,5 +87,14 @@ export class GameState {
 
   get isDefeated(): boolean {
     return this.hits >= MAX_HITS;
+  }
+
+  // Not touched by reset() - a chosen character is a preference, not run progress.
+  get characterId(): string {
+    return (this.store.get(KEYS.characterId) as string | undefined) ?? DEFAULT_CHARACTER_ID;
+  }
+
+  set characterId(value: string) {
+    this.store.set(KEYS.characterId, value);
   }
 }
