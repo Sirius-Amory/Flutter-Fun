@@ -22,28 +22,31 @@ export class HUDScene extends Phaser.Scene {
     const state = new GameState(this.registry);
 
     this.ageText = this.add
-      .text(16, 12, `Age: ${state.age}`, { fontSize: '22px', color: '#ffffff', fontStyle: 'bold' })
+      .text(16, 10, `Score: ${state.age}`, { fontSize: '30px', color: '#ffffff', fontStyle: 'bold', backgroundColor: '#182536', padding: { x: 10, y: 5 } })
       .setScrollFactor(0)
       .setDepth(100);
     this.rankText = this.add
-      .text(16, 42, `${state.rank.id} - ${state.rank.label}`, { fontSize: '16px', color: '#cccccc' })
+      .text(16, 58, `${state.rank.id} - ${state.rank.label}`, { fontSize: '22px', color: '#d9f0ff', fontStyle: 'bold', backgroundColor: '#182536', padding: { x: 10, y: 5 } })
       .setScrollFactor(0)
       .setDepth(100);
     this.tokensText = this.add
-      .text(this.scale.width - 16, 12, `Tokens: ${state.tokens}/${state.rank.tokensToPromote}`, {
-        fontSize: '16px',
+      .text(this.scale.width - 16, 10, `Tokens: ${state.tokens}/${state.rank.tokensToPromote}`, {
+        fontSize: '24px',
         color: '#ffd23f',
+        fontStyle: 'bold',
+        backgroundColor: '#182536',
+        padding: { x: 10, y: 5 },
       })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(100);
     this.hitsText = this.add
-      .text(this.scale.width - 16, 36, `Hits: ${state.hits}/${MAX_HITS}`, { fontSize: '16px', color: '#ff6b6b' })
+      .text(this.scale.width - 16, 52, `Hits: ${state.hits}/${MAX_HITS}`, { fontSize: '24px', color: '#ff6b6b', fontStyle: 'bold', backgroundColor: '#182536', padding: { x: 10, y: 5 } })
       .setOrigin(1, 0)
       .setScrollFactor(0)
       .setDepth(100);
 
-    const onAgeChanged = (age: number) => this.ageText.setText(`Age: ${age}`);
+    const onAgeChanged = (age: number) => this.ageText.setText(`Score: ${age}`);
     const onRankChanged = (rank: RankConfig) => this.rankText.setText(`${rank.id} - ${rank.label}`);
     const onTokensChanged = ({ count, needed }: TokensChangedPayload) =>
       this.tokensText.setText(`Tokens: ${count}/${needed}`);

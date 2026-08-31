@@ -5,6 +5,7 @@ import adventurerJump from '../assets/kenney_platformer-characters/PNG/Adventure
 import adventurerFall from '../assets/kenney_platformer-characters/PNG/Adventurer/Poses/adventurer_fall.png';
 import adventurerKick from '../assets/kenney_platformer-characters/PNG/Adventurer/Poses/adventurer_kick.png';
 import adventurerHurt from '../assets/kenney_platformer-characters/PNG/Adventurer/Poses/adventurer_hurt.png';
+import adventurerDuck from '../assets/kenney_platformer-characters/PNG/Adventurer/Poses/adventurer_duck.png';
 
 import femaleIdle from '../assets/kenney_platformer-characters/PNG/Female/Poses/female_idle.png';
 import femaleWalk1 from '../assets/kenney_platformer-characters/PNG/Female/Poses/female_walk1.png';
@@ -13,6 +14,7 @@ import femaleJump from '../assets/kenney_platformer-characters/PNG/Female/Poses/
 import femaleFall from '../assets/kenney_platformer-characters/PNG/Female/Poses/female_fall.png';
 import femaleKick from '../assets/kenney_platformer-characters/PNG/Female/Poses/female_kick.png';
 import femaleHurt from '../assets/kenney_platformer-characters/PNG/Female/Poses/female_hurt.png';
+import femaleDuck from '../assets/kenney_platformer-characters/PNG/Female/Poses/female_duck.png';
 
 import playerIdle from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_idle.png';
 import playerWalk1 from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_walk1.png';
@@ -21,6 +23,7 @@ import playerJump from '../assets/kenney_platformer-characters/PNG/Player/Poses/
 import playerFall from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_fall.png';
 import playerKick from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_kick.png';
 import playerHurt from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_hurt.png';
+import playerDuck from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_duck.png';
 
 import soldierIdle from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_idle.png';
 import soldierWalk1 from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_walk1.png';
@@ -29,6 +32,7 @@ import soldierJump from '../assets/kenney_platformer-characters/PNG/Soldier/Pose
 import soldierFall from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_fall.png';
 import soldierKick from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_kick.png';
 import soldierHurt from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_hurt.png';
+import soldierDuck from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_duck.png';
 
 import zombieIdle from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_idle.png';
 import zombieWalk1 from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_walk1.png';
@@ -37,6 +41,7 @@ import zombieJump from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/
 import zombieFall from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_fall.png';
 import zombieKick from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_kick.png';
 import zombieHurt from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_hurt.png';
+import zombieDuck from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_duck.png';
 
 export interface CharacterDef {
   id: string;
@@ -47,6 +52,7 @@ export interface CharacterDef {
   fall: string;
   kick: string;
   hurt: string;
+  duck: string;
 }
 
 // Kenney "Platformer Characters" (CC0) - see game/src/assets/kenney_platformer-characters/License.txt.
@@ -60,6 +66,7 @@ export const CHARACTERS: CharacterDef[] = [
     fall: adventurerFall,
     kick: adventurerKick,
     hurt: adventurerHurt,
+    duck: adventurerDuck,
   },
   {
     id: 'female',
@@ -70,6 +77,7 @@ export const CHARACTERS: CharacterDef[] = [
     fall: femaleFall,
     kick: femaleKick,
     hurt: femaleHurt,
+    duck: femaleDuck,
   },
   {
     id: 'player',
@@ -80,6 +88,7 @@ export const CHARACTERS: CharacterDef[] = [
     fall: playerFall,
     kick: playerKick,
     hurt: playerHurt,
+    duck: playerDuck,
   },
   {
     id: 'soldier',
@@ -90,6 +99,7 @@ export const CHARACTERS: CharacterDef[] = [
     fall: soldierFall,
     kick: soldierKick,
     hurt: soldierHurt,
+    duck: soldierDuck,
   },
   {
     id: 'zombie',
@@ -100,6 +110,7 @@ export const CHARACTERS: CharacterDef[] = [
     fall: zombieFall,
     kick: zombieKick,
     hurt: zombieHurt,
+    duck: zombieDuck,
   },
 ];
 

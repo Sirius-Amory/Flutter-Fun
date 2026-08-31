@@ -10,12 +10,16 @@ import { LeaderboardScene } from './scenes/LeaderboardScene';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  title: 'CCA-Survive',
+  title: 'Cubicle Survivor',
   parent: 'app',
   backgroundColor: '#4488aa',
   pixelArt: true,
+  render: {
+    antialias: false,
+    roundPixels: true,
+  },
   scale: {
-    mode: Phaser.Scale.FIT,
+    mode: Phaser.Scale.RESIZE,
     autoCenter: Phaser.Scale.CENTER_BOTH,
     width: 960,
     height: 540,
@@ -23,7 +27,7 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { x: 0, y: 900 },
+      gravity: { x: 0, y: 1800 },
       debug: false,
     },
   },

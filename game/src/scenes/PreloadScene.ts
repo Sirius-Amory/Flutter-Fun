@@ -1,10 +1,8 @@
 import Phaser from 'phaser';
 import { generateTextures } from '../textures/generateTextures';
 import { CHARACTERS } from '../data/characters';
+import { BACKGROUND_ASSETS, OBSTACLE_ASSETS, PROMOTION_TOKEN_ASSET, REGULAR_TOKEN_ASSETS } from '../data/gameAssets';
 
-// No external asset files to load for most textures - those are generated procedurally in
-// create(). Character art is real Kenney PNGs (imported via Vite in data/characters.ts), so it
-// needs an actual preload() load phase before create() runs.
 export class PreloadScene extends Phaser.Scene {
   constructor() {
     super('Preload');
@@ -19,7 +17,12 @@ export class PreloadScene extends Phaser.Scene {
       this.load.image(`${character.id}-fall`, character.fall);
       this.load.image(`${character.id}-kick`, character.kick);
       this.load.image(`${character.id}-hurt`, character.hurt);
+      this.load.image(`${character.id}-duck`, character.duck);
     }
+    for (const asset of [...REGULAR_TOKEN_ASSETS, PROMOTION_TOKEN_ASSET, ...OBSTACLE_ASSETS]) {
+      this.load.image(asset.key, asset.source);
+    }
+    BACKGROUND_ASSETS.forEach((source, index) => this.load.image(`office-background-${index + 1}`, source));
   }
 
   create(): void {

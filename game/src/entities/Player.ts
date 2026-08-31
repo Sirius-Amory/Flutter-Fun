@@ -2,12 +2,12 @@ import Phaser from 'phaser';
 import { getCharacterById, type CharacterDef } from '../data/characters';
 
 const MOVE_SPEED = 200;
-const JUMP_VELOCITY = -480;
+const JUMP_VELOCITY = -760;
 const MAX_JUMPS = 2;
 const PARRY_KEY_CODES = ['SHIFT', 'X'];
 // Display height in px that every character (regardless of its source art's native resolution)
 // is scaled to, so swapping character packs never requires re-tuning gameplay feel.
-const PLAYER_TARGET_HEIGHT = 42;
+const PLAYER_TARGET_HEIGHT = 168;
 
 type WasdKeys = {
   W: Phaser.Input.Keyboard.Key;
@@ -33,12 +33,14 @@ function ensureCharacterAnimations(scene: Phaser.Scene, character: CharacterDef)
   scene.anims.create({ key: `${character.id}-fall`, frames: [frame(`${character.id}-fall`)], frameRate: 1, repeat: -1 });
   scene.anims.create({ key: `${character.id}-kick`, frames: [frame(`${character.id}-kick`)], frameRate: 1, repeat: -1 });
   scene.anims.create({ key: `${character.id}-hurt`, frames: [frame(`${character.id}-hurt`)], frameRate: 1, repeat: -1 });
+  scene.anims.create({ key: `${character.id}-duck`, frames: [frame(`${character.id}-duck`)], frameRate: 1, repeat: -1 });
 }
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   private cursors: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasd: WasdKeys;
   private parryKeys: Phaser.Input.Keyboard.Key[];
+  private crouchKey: Phaser.Input.Keyboard.Key;
   private characterId: string;
   private jumpsRemaining = MAX_JUMPS;
   private isInvincible = false;
@@ -46,6 +48,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private rankScale = 1;
   private parryWindowSeconds: number;
   private parryTimeRemaining = 0;
+  private hasMoved = false;
+  private movementDirection = 0;
+  private readonly standingBodyWidth: number;
+  private readonly standingBodyHeight: number;
+  private isCrouching = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, initialParryWindowSeconds: number, characterId: string) {
     const character = getCharacterById(characterId);
@@ -61,44 +68,52 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.baseScale = PLAYER_TARGET_HEIGHT / this.height;
     const bodyWidth = this.width * 0.5;
     const bodyHeight = this.height * 0.85;
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    this.standingBodyWidth = bodyWidth;
+    this.standingBodyHeight = bodyHeight;
     this.setSize(bodyWidth, bodyHeight);
     this.setOffset((this.width - bodyWidth) / 2, this.height - bodyHeight);
     this.setScale(this.baseScale);
 
     this.setBounce(0.05);
+    body.setCollideWorldBounds(true);
     this.setDepth(10);
     this.parryWindowSeconds = initialParryWindowSeconds;
 
     this.cursors = scene.input.keyboard!.createCursorKeys();
     this.wasd = scene.input.keyboard!.addKeys('W,A,S,D') as unknown as WasdKeys;
     this.parryKeys = PARRY_KEY_CODES.map((code) => scene.input.keyboard!.addKey(code));
+    this.crouchKey = scene.input.keyboard!.addKey('CTRL');
   }
 
   update(deltaMs: number): void {
     const body = this.body as Phaser.Physics.Arcade.Body;
-    const left = this.cursors.left.isDown || this.wasd.A.isDown;
-    const right = this.cursors.right.isDown || this.wasd.D.isDown;
+    const leftPressed = Phaser.Input.Keyboard.JustDown(this.cursors.left) || Phaser.Input.Keyboard.JustDown(this.wasd.A);
+    const rightPressed = Phaser.Input.Keyboard.JustDown(this.cursors.right) || Phaser.Input.Keyboard.JustDown(this.wasd.D);
     const jumpJustPressed =
       Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
       Phaser.Input.Keyboard.JustDown(this.wasd.W) ||
       Phaser.Input.Keyboard.JustDown(this.cursors.space);
     const parryJustPressed = this.parryKeys.some((key) => Phaser.Input.Keyboard.JustDown(key));
+    const crouching = this.crouchKey.isDown && body.blocked.down;
 
-    if (left) {
-      body.setVelocityX(-MOVE_SPEED);
+    if (leftPressed) {
+      this.hasMoved = true;
+      this.movementDirection = this.movementDirection === -1 ? 0 : -1;
       this.setFlipX(true);
-    } else if (right) {
-      body.setVelocityX(MOVE_SPEED);
+    } else if (rightPressed) {
+      this.hasMoved = true;
+      this.movementDirection = this.movementDirection === 1 ? 0 : 1;
       this.setFlipX(false);
-    } else {
-      body.setVelocityX(0);
     }
+    body.setVelocityX(this.movementDirection * MOVE_SPEED);
 
     if (body.blocked.down) {
       this.jumpsRemaining = MAX_JUMPS;
     }
 
     if (jumpJustPressed && this.jumpsRemaining > 0) {
+      this.hasMoved = true;
       body.setVelocityY(JUMP_VELOCITY);
       this.jumpsRemaining -= 1;
     }
@@ -109,20 +124,38 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.parryTimeRemaining = Math.max(0, this.parryTimeRemaining - deltaMs / 1000);
     }
 
+    if (this.isCrouching !== crouching) {
+      this.isCrouching = crouching;
+      this.updateCrouchBody();
+    }
     this.setScale(this.baseScale * this.rankScale);
-    this.play(`${this.characterId}-${this.pickAnimationKey(body, left || right)}`, true);
+    if (this.isInvincible) this.setTint(0xff5c5c);
+    else if (this.isParrying) this.setTint(0x55e8ff);
+    else this.clearTint();
+    this.play(`${this.characterId}-${this.pickAnimationKey(body, this.movementDirection !== 0)}`, true);
+  }
+
+  private updateCrouchBody(): void {
+    const height = this.isCrouching ? this.standingBodyHeight * 0.58 : this.standingBodyHeight;
+    this.setSize(this.standingBodyWidth, height);
+    this.setOffset((this.width - this.standingBodyWidth) / 2, this.height - height);
   }
 
   // Highest-priority state wins: getting hit/parrying is more important to read than locomotion.
   private pickAnimationKey(body: Phaser.Physics.Arcade.Body, movingHorizontally: boolean): string {
     if (this.isInvincible) return 'hurt';
     if (this.parryTimeRemaining > 0) return 'kick';
+    if (this.isCrouching) return 'duck';
     if (!body.blocked.down) return body.velocity.y < 0 ? 'jump' : 'fall';
     return movingHorizontally ? 'walk' : 'idle';
   }
 
   get isParrying(): boolean {
     return this.parryTimeRemaining > 0;
+  }
+
+  get startedMoving(): boolean {
+    return this.hasMoved;
   }
 
   setParryWindowSeconds(seconds: number): void {

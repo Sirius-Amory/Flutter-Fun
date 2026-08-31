@@ -1,32 +1,26 @@
 import Phaser from 'phaser';
+import { TokenMotion, type TokenMotionConfig } from './TokenMotion';
 
-export const REGULAR_TOKEN_TEXTURE_KEYS = ['token-coffee', 'token-feedback', 'token-raise', 'token-checkmark'] as const;
 export const PROMOTION_TOKEN_TEXTURE_KEY = 'token-promotion';
 
 export class Collectible extends Phaser.Physics.Arcade.Sprite {
   readonly isPromotion: boolean;
+  private readonly motion: TokenMotion;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, isPromotion = false) {
+  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, motionConfig: TokenMotionConfig, displaySize: number, isPromotion = false) {
     super(scene, x, y, textureKey);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.isPromotion = isPromotion;
+    const size = isPromotion ? displaySize * 1.25 : displaySize;
+    this.setDisplaySize(size, size);
+    this.motion = new TokenMotion(this, x, y, motionConfig);
+    this.setDepth(4);
+  }
 
-    scene.tweens.add({
-      targets: this,
-      y: y - 8,
-      duration: 700,
-      yoyo: true,
-      repeat: -1,
-      ease: 'Sine.easeInOut',
-    });
-    scene.tweens.add({
-      targets: this,
-      angle: 360,
-      duration: 2000,
-      repeat: -1,
-    });
+  updateMotion(deltaMs: number): void {
+    this.motion.update(deltaMs);
   }
 
   collect(onComplete: () => void): void {

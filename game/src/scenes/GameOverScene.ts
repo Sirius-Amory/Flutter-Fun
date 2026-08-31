@@ -23,14 +23,16 @@ export class GameOverScene extends Phaser.Scene {
   create(): void {
     stopBackgroundMusic();
     const { width, height } = this.scale;
+    const compact = width < 600;
     this.cameras.main.setBackgroundColor(0x2b1d1d);
 
+    this.add.text(width / 2, height / 2 - 155, 'Cubicle Survivor', { fontSize: '20px', color: '#cccccc' }).setOrigin(0.5);
     this.add
-      .text(width / 2, height / 2 - 100, 'Burned Out', { fontSize: '48px', color: '#ff6b6b', fontStyle: 'bold' })
+      .text(width / 2, height / 2 - 100, 'Burned Out', { fontSize: compact ? '36px' : '48px', color: '#ff6b6b', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.add
-      .text(width / 2, height / 2 - 40, `Retired early at age ${this.age} (Rank ${this.rankId})`, {
-        fontSize: '22px',
+      .text(width / 2, height / 2 - 40, `IT crushed your soul as a ${this.rankId} at age ${this.age}`, {
+        fontSize: compact ? '14px' : '22px',
         color: '#ffffff',
       })
       .setOrigin(0.5);

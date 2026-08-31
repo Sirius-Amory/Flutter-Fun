@@ -1,5 +1,5 @@
 {
-  "name": "Platform Hopper Dev",
+  "name": "Cubicle Survivor Dev",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:24",
   "features": {
     "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},

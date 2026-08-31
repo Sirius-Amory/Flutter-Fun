@@ -17,6 +17,7 @@ export class MainMenuScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+    const compact = width < 600;
     this.cameras.main.setBackgroundColor(0x1d1d2b);
 
     const savedCharacterId = new GameState(this.registry).characterId;
@@ -24,11 +25,11 @@ export class MainMenuScene extends Phaser.Scene {
     this.characterIndex = Math.max(0, savedIndex);
 
     this.add
-      .text(width / 2, height / 2 - 190, 'CCA-Survive', { fontSize: '52px', color: '#ffd23f', fontStyle: 'bold' })
+      .text(width / 2, height / 2 - 190, 'Cubicle Survivor', { fontSize: compact ? '34px' : '52px', color: '#ffd23f', fontStyle: 'bold' })
       .setOrigin(0.5);
     this.add
       .text(width / 2, height / 2 - 145, 'Survive the career ladder from Grad Dev to CEO', {
-        fontSize: '18px',
+        fontSize: compact ? '13px' : '18px',
         color: '#cccccc',
       })
       .setOrigin(0.5);
@@ -36,8 +37,8 @@ export class MainMenuScene extends Phaser.Scene {
       .text(
         width / 2,
         height / 2 - 110,
-        'Arrow keys / WASD to move \u2022 Up / Space to jump \u2022 Shift / X to parry',
-        { fontSize: '16px', color: '#cccccc' }
+        'Arrow keys / WASD to move \u2022 Up / Space to jump \u2022 Control to crouch \u2022 Shift / X to parry',
+        { fontSize: compact ? '11px' : '16px', color: '#cccccc' }
       )
       .setOrigin(0.5);
 

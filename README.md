@@ -1,6 +1,6 @@
-# Platform Hopper
+# Cubicle Survivor
 
-A 2D platformer built with [Phaser 3](https://phaser.io/) + TypeScript, with an online
+A 2D survival game built with [Phaser 3](https://phaser.io/) + TypeScript, with an online
 leaderboard. This project is also a hands-on playground for **Docker** and **Azure Static
 Web Apps (SWA)**.
 

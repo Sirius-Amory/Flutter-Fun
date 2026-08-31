@@ -1,5 +1,3 @@
-export type ObstacleTheme = 'gradDev' | 'intermediate' | 'senior' | 'architect' | 'manager' | 'cto' | 'ceo';
-
 export interface RankConfig {
   id: string;
   label: string;
@@ -9,31 +7,47 @@ export interface RankConfig {
   distance: number;
   parryWindowSeconds: number;
   spawnIntervalMs: number;
+  obstacleSpawnMinMs: number;
+  obstacleSpawnMaxMs: number;
   obstacleSpeed: number;
+  obstacleSpawnHeightMin: number;
+  obstacleSpawnHeightMax: number;
+  obstacleRotationSpeed: number;
+  tokenSpawnIntervalMs: number;
+  tokenMotionAmplitude: number;
+  tokenMotionSpeed: number;
+  badgeDisplaySize: number;
   playerScale: number;
   /** Regular tokens needed before the next token spawned is the Promotion token. */
   tokensToPromote: number;
-  theme: ObstacleTheme;
 }
 
-// Single source of truth for CCA-Survive's age/rank pacing and difficulty curve. Ages and parry
-// windows mirror the CCA-Survive design doc exactly (see rankConfig.test.ts); distance thresholds,
-// spawn rate/speed, player scale, and token quotas are tunable placeholders for playtesting.
+export const OBSTACLE_SPEED_MULTIPLIER = 2;
+export const SPAWN_INTERVAL_MULTIPLIER = 2;
+export const TOKEN_MOTION_AMPLITUDE_MULTIPLIER = 2;
+export const TOKEN_MOTION_SPEED_MULTIPLIER = 2.5;
+
+// Single source of truth for Cubicle Survivor's pacing and difficulty curve.
 export const RANKS: RankConfig[] = [
-  { id: 'A1', label: 'Grad Dev', age: 20, distance: 0, parryWindowSeconds: 0.3, spawnIntervalMs: 1700, obstacleSpeed: 140, playerScale: 1.0, tokensToPromote: 5, theme: 'gradDev' },
-  { id: 'A2', label: 'Grad Dev', age: 23, distance: 1200, parryWindowSeconds: 0.27, spawnIntervalMs: 1600, obstacleSpeed: 150, playerScale: 1.0, tokensToPromote: 5, theme: 'gradDev' },
-  { id: 'B1', label: 'Intermediate Dev', age: 26, distance: 2400, parryWindowSeconds: 0.24, spawnIntervalMs: 1500, obstacleSpeed: 160, playerScale: 1.08, tokensToPromote: 6, theme: 'intermediate' },
-  { id: 'B2', label: 'Intermediate Dev', age: 29, distance: 3600, parryWindowSeconds: 0.21, spawnIntervalMs: 1400, obstacleSpeed: 170, playerScale: 1.08, tokensToPromote: 6, theme: 'intermediate' },
-  { id: 'C1', label: 'Senior Dev', age: 32, distance: 4800, parryWindowSeconds: 0.18, spawnIntervalMs: 1300, obstacleSpeed: 180, playerScale: 1.16, tokensToPromote: 6, theme: 'senior' },
-  { id: 'C2', label: 'Senior Dev', age: 35, distance: 6000, parryWindowSeconds: 0.16, spawnIntervalMs: 1200, obstacleSpeed: 190, playerScale: 1.16, tokensToPromote: 6, theme: 'senior' },
-  { id: 'D1', label: 'Architect', age: 38, distance: 7200, parryWindowSeconds: 0.14, spawnIntervalMs: 1100, obstacleSpeed: 200, playerScale: 1.24, tokensToPromote: 7, theme: 'architect' },
-  { id: 'D2', label: 'Architect', age: 41, distance: 8400, parryWindowSeconds: 0.12, spawnIntervalMs: 1000, obstacleSpeed: 210, playerScale: 1.24, tokensToPromote: 7, theme: 'architect' },
-  { id: 'E1', label: 'Business Manager', age: 45, distance: 9600, parryWindowSeconds: 0.11, spawnIntervalMs: 900, obstacleSpeed: 220, playerScale: 1.32, tokensToPromote: 7, theme: 'manager' },
-  { id: 'E2', label: 'Business Manager', age: 49, distance: 10800, parryWindowSeconds: 0.1, spawnIntervalMs: 850, obstacleSpeed: 230, playerScale: 1.32, tokensToPromote: 7, theme: 'manager' },
-  { id: 'F1', label: 'CTO', age: 53, distance: 12000, parryWindowSeconds: 0.09, spawnIntervalMs: 800, obstacleSpeed: 240, playerScale: 1.4, tokensToPromote: 8, theme: 'cto' },
-  { id: 'F2', label: 'CTO', age: 57, distance: 13200, parryWindowSeconds: 0.085, spawnIntervalMs: 750, obstacleSpeed: 250, playerScale: 1.4, tokensToPromote: 8, theme: 'cto' },
-  { id: 'G1', label: 'CEO', age: 61, distance: 14400, parryWindowSeconds: 0.08, spawnIntervalMs: 700, obstacleSpeed: 260, playerScale: 1.48, tokensToPromote: 8, theme: 'ceo' },
-  { id: 'G2', label: 'CEO', age: 65, distance: 15600, parryWindowSeconds: 0.07, spawnIntervalMs: 650, obstacleSpeed: 270, playerScale: 1.48, tokensToPromote: 8, theme: 'ceo' },
+  ...[
+    ['A1', 'Grad Dev', 20, 0, 0.3, 1700, 140, 1, 5], ['A2', 'Grad Dev', 23, 1200, 0.27, 1600, 150, 1, 5],
+    ['B1', 'Intermediate Dev', 26, 2400, 0.24, 1500, 160, 1.08, 6], ['B2', 'Intermediate Dev', 29, 3600, 0.21, 1400, 170, 1.08, 6],
+    ['C1', 'Senior Dev', 32, 4800, 0.18, 1300, 180, 1.16, 6], ['C2', 'Senior Dev', 35, 6000, 0.16, 1200, 190, 1.16, 6],
+    ['D1', 'Architect', 38, 7200, 0.14, 1100, 200, 1.24, 7], ['D2', 'Architect', 41, 8400, 0.12, 1000, 210, 1.24, 7],
+    ['E1', 'Business Manager', 45, 9600, 0.11, 900, 220, 1.32, 7], ['E2', 'Business Manager', 49, 10800, 0.1, 850, 230, 1.32, 7],
+    ['F1', 'CTO', 53, 12000, 0.09, 800, 240, 1.4, 8], ['F2', 'CTO', 57, 13200, 0.085, 750, 250, 1.4, 8],
+    ['G1', 'CEO', 61, 14400, 0.08, 700, 260, 1.48, 8], ['G2', 'CEO', 65, 15600, 0.07, 650, 270, 1.48, 8],
+  ].map(([id, label, age, distance, parryWindowSeconds, spawnIntervalMs, obstacleSpeed, playerScale, tokensToPromote], index) => ({
+    id: id as string, label: label as string, age: age as number, distance: distance as number,
+    parryWindowSeconds: parryWindowSeconds as number, spawnIntervalMs: spawnIntervalMs as number,
+    obstacleSpawnMinMs: ((spawnIntervalMs as number) - 250) * SPAWN_INTERVAL_MULTIPLIER,
+    obstacleSpawnMaxMs: ((spawnIntervalMs as number) + 250) * SPAWN_INTERVAL_MULTIPLIER,
+    obstacleSpeed: obstacleSpeed as number, obstacleSpawnHeightMin: 50, obstacleSpawnHeightMax: 170,
+    obstacleRotationSpeed: 18, tokenSpawnIntervalMs: (1500 - index * 35) * SPAWN_INTERVAL_MULTIPLIER,
+    tokenMotionAmplitude: 28 * TOKEN_MOTION_AMPLITUDE_MULTIPLIER,
+    tokenMotionSpeed: (2.2 + index * 0.04) * TOKEN_MOTION_SPEED_MULTIPLIER, badgeDisplaySize: 58 + Math.min(index, 5),
+    playerScale: playerScale as number, tokensToPromote: tokensToPromote as number,
+  })),
 ];
 
 export const FINAL_RANK_INDEX = RANKS.length - 1;
@@ -47,6 +61,3 @@ export function getRankIndexForDistance(distance: number): number {
   return index;
 }
 
-export function obstacleTextureKey(theme: ObstacleTheme): string {
-  return `obstacle-${theme}`;
-}

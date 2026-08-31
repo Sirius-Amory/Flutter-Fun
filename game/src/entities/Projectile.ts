@@ -1,19 +1,33 @@
 import Phaser from 'phaser';
 
-// A rank-themed workplace-annoyance hazard: spawned ahead of the player and drifts left at a
-// rank-tuned speed. Resolved exactly once, either by a hit (no reward) or a timed parry (bonus token).
 export class Projectile extends Phaser.Physics.Arcade.Sprite {
   private resolved = false;
+  private readonly rotationSpeed: number;
+  private readonly velocity = new Phaser.Math.Vector2();
 
-  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, speed: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, targetX: number, targetY: number, speed: number, rotationSpeed: number, displaySize: number) {
     super(scene, x, y, textureKey);
     scene.add.existing(this);
     scene.physics.add.existing(this);
 
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
-    body.setVelocityX(-speed);
-    this.setSize(22, 22);
+    const direction = new Phaser.Math.Vector2(targetX - x, targetY - y).normalize();
+    this.setDisplaySize(displaySize, displaySize);
+    this.setSize(this.width * 0.78, this.height * 0.78);
+    this.setOffset((this.width - body.width) / 2, (this.height - body.height) / 2);
+    this.velocity.set(direction.x * speed, direction.y * speed);
+    body.setVelocity(0, 0);
+    this.rotationSpeed = rotationSpeed;
+  }
+
+  updateMotion(deltaMs: number): void {
+    if (this.resolved) return;
+    const deltaSeconds = deltaMs / 1000;
+    this.x += this.velocity.x * deltaSeconds;
+    this.y += this.velocity.y * deltaSeconds;
+    (this.body as Phaser.Physics.Arcade.Body).reset(this.x, this.y);
+    this.angle += this.rotationSpeed * deltaSeconds;
   }
 
   get isResolved(): boolean {

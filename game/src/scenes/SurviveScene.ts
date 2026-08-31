@@ -1,27 +1,32 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
-import { Collectible, REGULAR_TOKEN_TEXTURE_KEYS, PROMOTION_TOKEN_TEXTURE_KEY } from '../entities/Collectible';
+import { Collectible, PROMOTION_TOKEN_TEXTURE_KEY } from '../entities/Collectible';
 import {
   FINAL_RANK_INDEX,
   FINAL_DISTANCE,
   getRankIndexForDistance,
-  obstacleTextureKey,
+  OBSTACLE_SPEED_MULTIPLIER,
   type RankConfig,
 } from '../data/rankConfig';
+import { OBSTACLE_TEXTURE_KEYS, REGULAR_TOKEN_TEXTURE_KEYS } from '../data/gameAssets';
+import type { TokenMotionPattern } from '../entities/TokenMotion';
 import { GameState } from '../state/GameState';
 import { eventBus, GameEvents } from '../events';
 import { playSfx } from '../audio/SfxManager';
 import { startBackgroundMusic } from '../audio/MusicManager';
+import { createButton } from '../ui/createButton';
 
-const WORLD_HEIGHT = 540;
-const GROUND_Y = 500;
+const WORLD_HEIGHT = 900;
+const GROUND_Y = 820;
 const GROUND_TOP_Y = GROUND_Y - 16;
 const PLAYER_START_X = 80;
-const PLAYER_START_Y = 420;
-const SPAWN_AHEAD_X = 760;
+const PLAYER_START_Y = 560;
+const SPAWN_MARGIN_X = 120;
 const CLEANUP_MARGIN_X = 120;
-const TOKEN_SPAWN_INTERVAL_MS = 1500;
+const BACKGROUND_ASPECT_RATIO = 3168 / 1344;
+const BACKGROUND_SCROLL_FACTOR = 1.35;
+const MIN_SPAWN_DISTANCE = 140;
 // Long enough for the full A1->G2 climb (see rankConfig.ts) plus spawn-ahead/cleanup buffer.
 const WORLD_WIDTH = PLAYER_START_X + FINAL_DISTANCE + 2000;
 
@@ -31,9 +36,11 @@ export class SurviveScene extends Phaser.Scene {
   private tokens!: Phaser.Physics.Arcade.Group;
   private state!: GameState;
   private obstacleSpawnAccumulator = 0;
+  private obstacleSpawnInterval = 0;
   private tokenSpawnAccumulator = 0;
   private pendingPromotionToken = false;
   private isEnding = false;
+  private officeBackgrounds: Phaser.GameObjects.Image[] = [];
 
   constructor() {
     super('Survive');
@@ -42,6 +49,7 @@ export class SurviveScene extends Phaser.Scene {
   init(): void {
     this.isEnding = false;
     this.obstacleSpawnAccumulator = 0;
+    this.obstacleSpawnInterval = 0;
     this.tokenSpawnAccumulator = 0;
     this.pendingPromotionToken = false;
   }
@@ -54,13 +62,12 @@ export class SurviveScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     this.cameras.main.setBackgroundColor(0x4488aa);
-
-    this.buildParallaxHills();
+    this.buildOfficeBackground();
 
     const ground = this.physics.add.staticGroup();
-    const groundTile = this.add.tileSprite(WORLD_WIDTH / 2, GROUND_Y, WORLD_WIDTH, 32, 'platform');
-    this.physics.add.existing(groundTile, true);
-    ground.add(groundTile);
+    const groundCollider = this.add.rectangle(WORLD_WIDTH / 2, GROUND_Y, WORLD_WIDTH, 32, 0xffffff, 0);
+    this.physics.add.existing(groundCollider, true);
+    ground.add(groundCollider);
 
     this.player = new Player(
       this,
@@ -69,7 +76,14 @@ export class SurviveScene extends Phaser.Scene {
       this.state.rank.parryWindowSeconds,
       this.state.characterId
     );
-    this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+    this.cameras.main.setFollowOffset(0, -140);
+    this.cameras.main.startFollow(this.player, true, 1, 1);
+    this.cameras.main.setDeadzone(1, this.scale.height);
+    const quitButton = createButton(this, this.scale.width - 70, 72, 'Quit', () => {
+      this.scene.stop('HUD');
+      this.scene.start('MainMenu');
+    });
+    quitButton.setScrollFactor(0).setDepth(110);
 
     this.obstacles = this.physics.add.group({ allowGravity: false });
     this.tokens = this.physics.add.group({ allowGravity: false });
@@ -89,7 +103,9 @@ export class SurviveScene extends Phaser.Scene {
 
     this.player.update(delta);
     this.updateProgress();
-    this.updateSpawning(delta);
+    if (this.player.startedMoving) this.updateSpawning(delta);
+    this.updateMovingEntities(delta);
+    this.updateOfficeBackground();
     this.cleanupOffscreen();
   }
 
@@ -109,22 +125,26 @@ export class SurviveScene extends Phaser.Scene {
     const rank = this.state.rank;
 
     this.obstacleSpawnAccumulator += delta;
-    if (this.obstacleSpawnAccumulator >= rank.spawnIntervalMs) {
-      this.obstacleSpawnAccumulator -= rank.spawnIntervalMs;
+    if (this.obstacleSpawnInterval === 0) {
+      this.obstacleSpawnInterval = Phaser.Math.Between(rank.obstacleSpawnMinMs, rank.obstacleSpawnMaxMs);
+    }
+    if (this.obstacleSpawnAccumulator >= this.obstacleSpawnInterval) {
+      this.obstacleSpawnAccumulator = 0;
+      this.obstacleSpawnInterval = 0;
       this.spawnObstacle(rank);
     }
 
     this.tokenSpawnAccumulator += delta;
-    if (this.tokenSpawnAccumulator >= TOKEN_SPAWN_INTERVAL_MS) {
-      this.tokenSpawnAccumulator -= TOKEN_SPAWN_INTERVAL_MS;
+    if (this.tokenSpawnAccumulator >= rank.tokenSpawnIntervalMs) {
+      this.tokenSpawnAccumulator = 0;
       this.spawnToken(rank);
     }
   }
 
   private spawnObstacle(rank: RankConfig): void {
-    const x = this.player.x + SPAWN_AHEAD_X;
-    const y = GROUND_TOP_Y - 14;
-    this.obstacles.add(new Projectile(this, x, y, obstacleTextureKey(rank.theme), rank.obstacleSpeed));
+    const { x, y } = this.findSpawnPosition(rank, 'obstacle');
+    const textureKey = Phaser.Utils.Array.GetRandom(OBSTACLE_TEXTURE_KEYS);
+    this.obstacles.add(new Projectile(this, x, y, textureKey, this.player.x, this.player.y, rank.obstacleSpeed * OBSTACLE_SPEED_MULTIPLIER, rank.obstacleRotationSpeed, rank.badgeDisplaySize));
   }
 
   private spawnToken(rank: RankConfig): void {
@@ -132,15 +152,43 @@ export class SurviveScene extends Phaser.Scene {
       !this.pendingPromotionToken && this.state.tokens >= rank.tokensToPromote && !this.state.isRetired;
     if (isPromotion) this.pendingPromotionToken = true;
 
-    const textureKey = isPromotion
-      ? PROMOTION_TOKEN_TEXTURE_KEY
-      : Phaser.Utils.Array.GetRandom(REGULAR_TOKEN_TEXTURE_KEYS as unknown as string[]);
-    // Promotion tokens always sit at ground level so a rank-up is never missed to bad luck of height.
-    const heightAboveGround = isPromotion ? 12 : 24 + Phaser.Math.Between(0, 70);
-    const x = this.player.x + SPAWN_AHEAD_X - Phaser.Math.Between(0, 120);
-    const y = GROUND_TOP_Y - heightAboveGround;
+    const textureKey = isPromotion ? PROMOTION_TOKEN_TEXTURE_KEY : Phaser.Utils.Array.GetRandom(REGULAR_TOKEN_TEXTURE_KEYS);
+    const { x, y } = this.findSpawnPosition(rank, 'token', isPromotion);
+    const pattern: TokenMotionPattern = isPromotion
+      ? 'bobbing'
+      : Phaser.Utils.Array.GetRandom(['bobbing', 'circular', 'figure8'] as TokenMotionPattern[]);
+    this.tokens.add(new Collectible(this, x, y, textureKey, {
+      pattern,
+      amplitude: rank.tokenMotionAmplitude,
+      speed: rank.tokenMotionSpeed,
+    }, rank.badgeDisplaySize, isPromotion));
+  }
 
-    this.tokens.add(new Collectible(this, x, y, textureKey, isPromotion));
+  private updateMovingEntities(delta: number): void {
+    for (const child of this.obstacles.getChildren()) (child as Projectile).updateMotion(delta);
+    for (const child of this.tokens.getChildren()) (child as Collectible).updateMotion(delta);
+  }
+
+  private findSpawnPosition(rank: RankConfig, type: 'token' | 'obstacle', isPromotion = false): { x: number; y: number } {
+    const heightMin = type === 'obstacle' ? rank.obstacleSpawnHeightMin : isPromotion ? 70 : 50;
+    const heightMax = type === 'obstacle' ? rank.obstacleSpawnHeightMax : isPromotion ? 70 : 160;
+    const activeObjects = [...this.obstacles.getChildren(), ...this.tokens.getChildren()] as Phaser.GameObjects.GameObject[];
+    const cameraRight = this.cameras.main.scrollX + this.scale.width;
+
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const candidate = {
+        x: cameraRight + Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320),
+        y: GROUND_TOP_Y - Phaser.Math.Between(heightMin, heightMax),
+      };
+      const hasNearbyObject = activeObjects.some((object) => {
+        const existing = object as Phaser.GameObjects.Sprite;
+        return Phaser.Math.Distance.Between(candidate.x, candidate.y, existing.x, existing.y) < MIN_SPAWN_DISTANCE;
+      });
+      if (!hasNearbyObject) return candidate;
+    }
+
+    const rightmostObject = activeObjects.reduce((rightmost, object) => Math.max(rightmost, (object as Phaser.GameObjects.Sprite).x), cameraRight);
+    return { x: rightmostObject + MIN_SPAWN_DISTANCE + SPAWN_MARGIN_X, y: GROUND_TOP_Y - heightMin };
   }
 
   private cleanupOffscreen(): void {
@@ -244,7 +292,7 @@ export class SurviveScene extends Phaser.Scene {
     this.time.delayedCall(500, () => {
       playSfx('gameOver');
       this.scene.stop('HUD');
-      this.scene.start('GameOver', { age: this.state.age, rankId: this.state.rank.id });
+      this.scene.start('GameOver', { age: this.state.age, rankId: this.state.rank.label });
     });
   }
 
@@ -266,12 +314,28 @@ export class SurviveScene extends Phaser.Scene {
     this.time.delayedCall(320, () => emitter.destroy());
   }
 
-  private buildParallaxHills(): void {
-    const hillCount = Math.ceil(WORLD_WIDTH / 400) + 1;
-    for (let i = 0; i < hillCount; i += 1) {
-      const hill = this.add.circle(i * 400 + 200, WORLD_HEIGHT - 20, 220, 0x2f6b4f, 0.5);
-      hill.setScrollFactor(0.3);
-      hill.setDepth(-10);
+  private buildOfficeBackground(): void {
+    const backgroundHeight = Math.max(WORLD_HEIGHT, this.scale.height);
+    const backgroundWidth = backgroundHeight * BACKGROUND_ASPECT_RATIO;
+    this.officeBackgrounds = [1, 2, 3, 4, 5].map((segment, index) => {
+      const image = this.add.image(index * backgroundWidth + backgroundWidth / 2, backgroundHeight / 2, `office-background-${segment}`);
+      image.setDisplaySize(backgroundWidth, backgroundHeight);
+      image.setScrollFactor(BACKGROUND_SCROLL_FACTOR);
+      image.setAlpha(0.72);
+      image.setDepth(-20);
+      return image;
+    });
+  }
+
+  private updateOfficeBackground(): void {
+    if (this.officeBackgrounds.length === 0) return;
+    const cameraLeft = this.cameras.main.scrollX * BACKGROUND_SCROLL_FACTOR;
+    const backgroundWidth = this.officeBackgrounds[0].displayWidth;
+    for (const image of this.officeBackgrounds) {
+      if (image.x + backgroundWidth / 2 < cameraLeft - backgroundWidth / 2) {
+        const rightmostX = Math.max(...this.officeBackgrounds.map((segment) => segment.x));
+        image.x = rightmostX + backgroundWidth;
+      }
     }
   }
 }
