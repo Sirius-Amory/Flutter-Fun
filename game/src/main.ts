@@ -7,6 +7,7 @@ import { HUDScene } from './scenes/HUDScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { VictoryScene } from './scenes/VictoryScene';
 import { LeaderboardScene } from './scenes/LeaderboardScene';
+import { WORLD_GRAVITY_Y } from './data/movementTuning';
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
@@ -27,7 +28,7 @@ const config: Phaser.Types.Core.GameConfig = {
   physics: {
     default: 'arcade',
     arcade: {
-      gravity: { x: 0, y: 1800 },
+      gravity: { x: 0, y: WORLD_GRAVITY_Y },
       debug: false,
     },
   },

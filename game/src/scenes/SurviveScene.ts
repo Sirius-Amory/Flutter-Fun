@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
-import { Collectible, PROMOTION_TOKEN_TEXTURE_KEY } from '../entities/Collectible';
+import { COLLECTIBLE_RENDER_SCALE, Collectible, PROMOTION_TOKEN_TEXTURE_KEY } from '../entities/Collectible';
 import {
   FINAL_RANK_INDEX,
   FINAL_DISTANCE,
@@ -9,6 +9,7 @@ import {
   OBSTACLE_SPEED_MULTIPLIER,
   type RankConfig,
 } from '../data/rankConfig';
+import { DOUBLE_JUMP_APEX_HEIGHT, SINGLE_JUMP_APEX_HEIGHT } from '../data/movementTuning';
 import { OBSTACLE_TEXTURE_KEYS, REGULAR_TOKEN_TEXTURE_KEYS } from '../data/gameAssets';
 import type { TokenMotionPattern } from '../entities/TokenMotion';
 import { GameState } from '../state/GameState';
@@ -20,13 +21,15 @@ import { createButton } from '../ui/createButton';
 const WORLD_HEIGHT = 900;
 const GROUND_Y = 820;
 const GROUND_TOP_Y = GROUND_Y - 16;
-const PLAYER_START_X = 80;
+const PLAYER_START_X = 320;
 const PLAYER_START_Y = 560;
+const PLAYER_CAMERA_SCREEN_RATIO = 1 / 3;
 const SPAWN_MARGIN_X = 120;
 const CLEANUP_MARGIN_X = 120;
 const BACKGROUND_ASPECT_RATIO = 3168 / 1344;
 const BACKGROUND_SCROLL_FACTOR = 1.35;
 const MIN_SPAWN_DISTANCE = 140;
+const TOKEN_APEX_CLEARANCE = 8;
 // Long enough for the full A1->G2 climb (see rankConfig.ts) plus spawn-ahead/cleanup buffer.
 const WORLD_WIDTH = PLAYER_START_X + FINAL_DISTANCE + 2000;
 
@@ -76,9 +79,8 @@ export class SurviveScene extends Phaser.Scene {
       this.state.rank.parryWindowSeconds,
       this.state.characterId
     );
-    this.cameras.main.setFollowOffset(0, -140);
+    this.cameras.main.setFollowOffset(-this.scale.width * (0.5 - PLAYER_CAMERA_SCREEN_RATIO), -140);
     this.cameras.main.startFollow(this.player, true, 1, 1);
-    this.cameras.main.setDeadzone(1, this.scale.height);
     const quitButton = createButton(this, this.scale.width - 70, 72, 'Quit', () => {
       this.scene.stop('HUD');
       this.scene.start('MainMenu');
@@ -105,6 +107,7 @@ export class SurviveScene extends Phaser.Scene {
     this.updateProgress();
     if (this.player.startedMoving) this.updateSpawning(delta);
     this.updateMovingEntities(delta);
+    this.checkSweptProjectileOverlaps();
     this.updateOfficeBackground();
     this.cleanupOffscreen();
   }
@@ -157,11 +160,24 @@ export class SurviveScene extends Phaser.Scene {
     const pattern: TokenMotionPattern = isPromotion
       ? 'bobbing'
       : Phaser.Utils.Array.GetRandom(['bobbing', 'circular', 'figure8'] as TokenMotionPattern[]);
+    const motion = this.getTokenMotionProfile(rank, isPromotion);
     this.tokens.add(new Collectible(this, x, y, textureKey, {
       pattern,
-      amplitude: rank.tokenMotionAmplitude,
+      amplitude: motion.amplitude,
       speed: rank.tokenMotionSpeed,
     }, rank.badgeDisplaySize, isPromotion));
+  }
+
+  private getTokenMotionProfile(rank: RankConfig, isPromotion: boolean): { centerHeight: number; amplitude: number } {
+    const baseDisplaySize = isPromotion ? rank.badgeDisplaySize * 1.25 : rank.badgeDisplaySize;
+    const tokenRadius = (baseDisplaySize * COLLECTIBLE_RENDER_SCALE) / 2;
+    const topCenterHeight = DOUBLE_JUMP_APEX_HEIGHT - tokenRadius - TOKEN_APEX_CLEARANCE;
+    const bottomCenterHeight = Math.max(tokenRadius + TOKEN_APEX_CLEARANCE, SINGLE_JUMP_APEX_HEIGHT * 0.6);
+
+    return {
+      centerHeight: (topCenterHeight + bottomCenterHeight) / 2,
+      amplitude: (topCenterHeight - bottomCenterHeight) / 2,
+    };
   }
 
   private updateMovingEntities(delta: number): void {
@@ -169,16 +185,30 @@ export class SurviveScene extends Phaser.Scene {
     for (const child of this.tokens.getChildren()) (child as Collectible).updateMotion(delta);
   }
 
+  private checkSweptProjectileOverlaps(): void {
+    const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+    const playerBounds = new Phaser.Geom.Rectangle(playerBody.x, playerBody.y, playerBody.width, playerBody.height);
+
+    for (const child of this.obstacles.getChildren()) {
+      const projectile = child as Projectile;
+      if (projectile.isResolved) continue;
+      if (Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, projectile.getSweptBodyBounds())) {
+        this.handleObstacleOverlap(this.player, projectile);
+      }
+    }
+  }
+
   private findSpawnPosition(rank: RankConfig, type: 'token' | 'obstacle', isPromotion = false): { x: number; y: number } {
     const heightMin = type === 'obstacle' ? rank.obstacleSpawnHeightMin : isPromotion ? 70 : 50;
     const heightMax = type === 'obstacle' ? rank.obstacleSpawnHeightMax : isPromotion ? 70 : 160;
     const activeObjects = [...this.obstacles.getChildren(), ...this.tokens.getChildren()] as Phaser.GameObjects.GameObject[];
     const cameraRight = this.cameras.main.scrollX + this.scale.width;
+    const tokenMotion = type === 'token' ? this.getTokenMotionProfile(rank, isPromotion) : null;
 
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const candidate = {
         x: cameraRight + Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320),
-        y: GROUND_TOP_Y - Phaser.Math.Between(heightMin, heightMax),
+        y: tokenMotion ? GROUND_TOP_Y - tokenMotion.centerHeight : GROUND_TOP_Y - Phaser.Math.Between(heightMin, heightMax),
       };
       const hasNearbyObject = activeObjects.some((object) => {
         const existing = object as Phaser.GameObjects.Sprite;

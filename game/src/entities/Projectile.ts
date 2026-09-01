@@ -1,9 +1,12 @@
 import Phaser from 'phaser';
+import { COLLECTIBLE_RENDER_SCALE } from './Collectible';
 
 export class Projectile extends Phaser.Physics.Arcade.Sprite {
   private resolved = false;
   private readonly rotationSpeed: number;
   private readonly velocity = new Phaser.Math.Vector2();
+  private previousX: number;
+  private previousY: number;
 
   constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, targetX: number, targetY: number, speed: number, rotationSpeed: number, displaySize: number) {
     super(scene, x, y, textureKey);
@@ -13,21 +16,37 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     const direction = new Phaser.Math.Vector2(targetX - x, targetY - y).normalize();
-    this.setDisplaySize(displaySize, displaySize);
+    this.setDisplaySize(displaySize * COLLECTIBLE_RENDER_SCALE, displaySize * COLLECTIBLE_RENDER_SCALE);
     this.setSize(this.width * 0.78, this.height * 0.78);
     this.setOffset((this.width - body.width) / 2, (this.height - body.height) / 2);
     this.velocity.set(direction.x * speed, direction.y * speed);
     body.setVelocity(0, 0);
     this.rotationSpeed = rotationSpeed;
+    this.previousX = x;
+    this.previousY = y;
   }
 
   updateMotion(deltaMs: number): void {
     if (this.resolved) return;
     const deltaSeconds = deltaMs / 1000;
+    this.previousX = this.x;
+    this.previousY = this.y;
     this.x += this.velocity.x * deltaSeconds;
     this.y += this.velocity.y * deltaSeconds;
     (this.body as Phaser.Physics.Arcade.Body).reset(this.x, this.y);
     this.angle += this.rotationSpeed * deltaSeconds;
+  }
+
+  getSweptBodyBounds(): Phaser.Geom.Rectangle {
+    const body = this.body as Phaser.Physics.Arcade.Body;
+    const deltaX = this.x - this.previousX;
+    const deltaY = this.y - this.previousY;
+    return new Phaser.Geom.Rectangle(
+      Math.min(body.x, body.x - deltaX),
+      Math.min(body.y, body.y - deltaY),
+      body.width + Math.abs(deltaX),
+      body.height + Math.abs(deltaY)
+    );
   }
 
   get isResolved(): boolean {

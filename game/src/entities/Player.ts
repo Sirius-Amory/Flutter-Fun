@@ -1,9 +1,7 @@
 import Phaser from 'phaser';
 import { getCharacterById, type CharacterDef } from '../data/characters';
+import { PLAYER_JUMP_VELOCITY, PLAYER_MAX_JUMPS, PLAYER_MOVE_SPEED } from '../data/movementTuning';
 
-const MOVE_SPEED = 200;
-const JUMP_VELOCITY = -760;
-const MAX_JUMPS = 2;
 const PARRY_KEY_CODES = ['SHIFT', 'X'];
 // Display height in px that every character (regardless of its source art's native resolution)
 // is scaled to, so swapping character packs never requires re-tuning gameplay feel.
@@ -42,7 +40,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private parryKeys: Phaser.Input.Keyboard.Key[];
   private crouchKey: Phaser.Input.Keyboard.Key;
   private characterId: string;
-  private jumpsRemaining = MAX_JUMPS;
+  private jumpsRemaining = PLAYER_MAX_JUMPS;
   private isInvincible = false;
   private baseScale = 1;
   private rankScale = 1;
@@ -106,15 +104,15 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.movementDirection = this.movementDirection === 1 ? 0 : 1;
       this.setFlipX(false);
     }
-    body.setVelocityX(this.movementDirection * MOVE_SPEED);
+    body.setVelocityX(this.movementDirection * PLAYER_MOVE_SPEED);
 
     if (body.blocked.down) {
-      this.jumpsRemaining = MAX_JUMPS;
+      this.jumpsRemaining = PLAYER_MAX_JUMPS;
     }
 
     if (jumpJustPressed && this.jumpsRemaining > 0) {
       this.hasMoved = true;
-      body.setVelocityY(JUMP_VELOCITY);
+      body.setVelocityY(PLAYER_JUMP_VELOCITY);
       this.jumpsRemaining -= 1;
     }
 

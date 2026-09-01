@@ -14,7 +14,6 @@ export interface RankConfig {
   obstacleSpawnHeightMax: number;
   obstacleRotationSpeed: number;
   tokenSpawnIntervalMs: number;
-  tokenMotionAmplitude: number;
   tokenMotionSpeed: number;
   badgeDisplaySize: number;
   playerScale: number;
@@ -22,9 +21,8 @@ export interface RankConfig {
   tokensToPromote: number;
 }
 
-export const OBSTACLE_SPEED_MULTIPLIER = 2;
+export const OBSTACLE_SPEED_MULTIPLIER = 4;
 export const SPAWN_INTERVAL_MULTIPLIER = 2;
-export const TOKEN_MOTION_AMPLITUDE_MULTIPLIER = 2;
 export const TOKEN_MOTION_SPEED_MULTIPLIER = 2.5;
 
 // Single source of truth for Cubicle Survivor's pacing and difficulty curve.
@@ -44,7 +42,6 @@ export const RANKS: RankConfig[] = [
     obstacleSpawnMaxMs: ((spawnIntervalMs as number) + 250) * SPAWN_INTERVAL_MULTIPLIER,
     obstacleSpeed: obstacleSpeed as number, obstacleSpawnHeightMin: 50, obstacleSpawnHeightMax: 170,
     obstacleRotationSpeed: 18, tokenSpawnIntervalMs: (1500 - index * 35) * SPAWN_INTERVAL_MULTIPLIER,
-    tokenMotionAmplitude: 28 * TOKEN_MOTION_AMPLITUDE_MULTIPLIER,
     tokenMotionSpeed: (2.2 + index * 0.04) * TOKEN_MOTION_SPEED_MULTIPLIER, badgeDisplaySize: 58 + Math.min(index, 5),
     playerScale: playerScale as number, tokensToPromote: tokensToPromote as number,
   })),
