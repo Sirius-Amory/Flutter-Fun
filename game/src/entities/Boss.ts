@@ -3,11 +3,12 @@ import Phaser from 'phaser';
 export type BossState = 'standstill' | 'telegraph' | 'attack' | 'staggered';
 
 export const BOSS_TELEGRAPH_DURATION_MS = 1000;
+export const BOSS_ATTACK_MIN_DURATION_MS = 2000;
+export const BOSS_ATTACK_MAX_DURATION_MS = 5000;
 
 export interface BossConfig {
   maxHealth: number;
   standstillDurationMs: number;
-  attackDurationMs: number;
   staggerDurationMs: number;
   projectileSpeed: number;
   attackPattern: 'single' | 'spread';
@@ -18,7 +19,6 @@ export const BOSS_CONFIGS: Record<number, BossConfig> = {
   1: {
     maxHealth: 3,
     standstillDurationMs: 4000,
-    attackDurationMs: 1000,
     staggerDurationMs: 400,
     projectileSpeed: 400,
     attackPattern: 'single',
@@ -26,7 +26,6 @@ export const BOSS_CONFIGS: Record<number, BossConfig> = {
   2: {
     maxHealth: 4,
     standstillDurationMs: 4000,
-    attackDurationMs: 1000,
     staggerDurationMs: 350,
     projectileSpeed: 440,
     attackPattern: 'single',
@@ -34,7 +33,6 @@ export const BOSS_CONFIGS: Record<number, BossConfig> = {
   3: {
     maxHealth: 4,
     standstillDurationMs: 4000,
-    attackDurationMs: 1000,
     staggerDurationMs: 350,
     projectileSpeed: 480,
     attackPattern: 'spread',
@@ -42,7 +40,6 @@ export const BOSS_CONFIGS: Record<number, BossConfig> = {
   4: {
     maxHealth: 5,
     standstillDurationMs: 4000,
-    attackDurationMs: 1000,
     staggerDurationMs: 300,
     projectileSpeed: 520,
     attackPattern: 'spread',
@@ -50,7 +47,6 @@ export const BOSS_CONFIGS: Record<number, BossConfig> = {
   5: {
     maxHealth: 5,
     standstillDurationMs: 4000,
-    attackDurationMs: 1000,
     staggerDurationMs: 300,
     projectileSpeed: 560,
     attackPattern: 'spread',
@@ -75,7 +71,6 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
   private readonly config: BossConfig;
   private stateTimer = 0;
   private isStaggered = false;
-  private canAttack = true;
   private baseScaleFactor: number;
 
   constructor(
@@ -150,15 +145,13 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.setTexture('boss-telegraph');
     this.applyTextureScale('boss-telegraph');
     this.stateTimer = BOSS_TELEGRAPH_DURATION_MS;
-    this.canAttack = false;
   }
 
   private transitionToAttack(): void {
     this.bossState = 'attack';
     this.setTexture('boss-attack');
     this.applyTextureScale('boss-attack');
-    this.stateTimer = this.config.attackDurationMs;
-    this.canAttack = true;
+    this.stateTimer = Phaser.Math.Between(BOSS_ATTACK_MIN_DURATION_MS, BOSS_ATTACK_MAX_DURATION_MS);
   }
 
   private transitionToStandstill(): void {
@@ -219,14 +212,6 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
 
   getState(): BossState {
     return this.bossState;
-  }
-
-  canFireAttack(): boolean {
-    return this.bossState === 'attack' && this.canAttack;
-  }
-
-  consumeAttack(): void {
-    this.canAttack = false;
   }
 
   getHealth(): number {

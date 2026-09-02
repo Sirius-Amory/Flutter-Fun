@@ -31,6 +31,10 @@ const BACKGROUND_ASPECT_RATIO = 3168 / 1344;
 const BACKGROUND_SCROLL_FACTOR = 1.35;
 const MIN_SPAWN_DISTANCE = 140;
 const TOKEN_APEX_CLEARANCE = 8;
+const BOSS_PROJECTILE_MIN_INTERVAL_MS = 400;
+const BOSS_PROJECTILE_MAX_INTERVAL_MS = 1000;
+const BOSS_PROJECTILE_SPEED_MULTIPLIER = 2.5;
+const BOSS_PARRY_WINDOW_MULTIPLIER = 0.5;
 // Long enough for the full A1->G2 climb (see rankConfig.ts) plus spawn-ahead/cleanup buffer.
 const WORLD_WIDTH = PLAYER_START_X + FINAL_DISTANCE + 2000;
 
@@ -52,6 +56,8 @@ export class SurviveScene extends Phaser.Scene {
   private inBossEncounter = false;
   private nextRankForBoss = -1;
   private bossProjectileSpawnAccumulator = 0;
+  private nextBossProjectileDelayMs = 0;
+  private bossWasAttacking = false;
 
   constructor() {
     super('Survive');
@@ -67,6 +73,8 @@ export class SurviveScene extends Phaser.Scene {
     this.nextRankForBoss = -1;
     this.boss = null;
     this.bossProjectileSpawnAccumulator = 0;
+    this.nextBossProjectileDelayMs = 0;
+    this.bossWasAttacking = false;
   }
 
   create(): void {
@@ -128,6 +136,7 @@ export class SurviveScene extends Phaser.Scene {
 
     this.updateMovingEntities(delta);
     this.checkSweptProjectileOverlaps();
+    this.cleanupBossProjectilesPastPlayer();
     this.updateOfficeBackground();
     this.cleanupOffscreen();
   }
@@ -209,6 +218,25 @@ export class SurviveScene extends Phaser.Scene {
       if (projectile.isResolved) continue;
       if (Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, projectile.getSweptBodyBounds())) {
         this.handleObstacleOverlap(this.player, projectile);
+      }
+    }
+
+    for (const child of this.bossProjectiles.getChildren()) {
+      const projectile = child as Projectile;
+      if (projectile.isResolved) continue;
+      if (Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, projectile.getSweptBodyBounds())) {
+        this.handleBossProjectileOverlap(this.player, projectile);
+      }
+    }
+  }
+
+  private cleanupBossProjectilesPastPlayer(): void {
+    const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
+    const playerLeft = playerBody.x;
+    for (const child of this.bossProjectiles.getChildren()) {
+      const projectile = child as Projectile;
+      if (!projectile.isResolved && projectile.x + projectile.displayWidth / 2 < playerLeft) {
+        projectile.destroy();
       }
     }
   }
@@ -397,6 +425,7 @@ export class SurviveScene extends Phaser.Scene {
 
   private startBossEncounter(): void {
     this.inBossEncounter = true;
+    this.player.setParryWindowSeconds(this.state.rank.parryWindowSeconds * BOSS_PARRY_WINDOW_MULTIPLIER);
 
     // Pause all spawning
     this.obstacleSpawnAccumulator = 0;
@@ -480,11 +509,20 @@ export class SurviveScene extends Phaser.Scene {
     if (!this.boss) return;
 
     this.boss.update(delta);
-    if (this.boss.getState() === 'attack') {
+    const isAttacking = this.boss.getState() === 'attack';
+    if (isAttacking) {
+      if (!this.bossWasAttacking) {
+        this.bossProjectileSpawnAccumulator = 0;
+        this.nextBossProjectileDelayMs = Phaser.Math.Between(
+          BOSS_PROJECTILE_MIN_INTERVAL_MS,
+          BOSS_PROJECTILE_MAX_INTERVAL_MS
+        );
+      }
       this.updateBossAttacks(delta);
     } else {
-      this.clearBossProjectiles();
+      this.bossProjectileSpawnAccumulator = 0;
     }
+    this.bossWasAttacking = isAttacking;
   }
 
   private updateBossAttacks(delta: number): void {
@@ -492,9 +530,12 @@ export class SurviveScene extends Phaser.Scene {
 
     this.bossProjectileSpawnAccumulator += delta;
 
-    // Fire projectile during Attack state
-    if (this.boss.canFireAttack()) {
-      this.boss.consumeAttack();
+    if (this.bossProjectileSpawnAccumulator >= this.nextBossProjectileDelayMs) {
+      this.bossProjectileSpawnAccumulator -= this.nextBossProjectileDelayMs;
+      this.nextBossProjectileDelayMs = Phaser.Math.Between(
+        BOSS_PROJECTILE_MIN_INTERVAL_MS,
+        BOSS_PROJECTILE_MAX_INTERVAL_MS
+      );
       this.spawnBossProjectile();
     }
   }
@@ -503,7 +544,7 @@ export class SurviveScene extends Phaser.Scene {
     if (!this.boss) return;
 
     const config = this.boss.getConfig();
-    const projectileSpeed = config.projectileSpeed;
+    const projectileSpeed = config.projectileSpeed * BOSS_PROJECTILE_SPEED_MULTIPLIER;
 
     if (config.attackPattern === 'single') {
       // Single shot toward player from boss torso
@@ -511,7 +552,7 @@ export class SurviveScene extends Phaser.Scene {
         this,
         this.boss.x,
         this.boss.y - 20,
-        'corp_bs',
+        'obstacle-corporate-bs',
         this.player.x,
         this.player.y,
         projectileSpeed,
@@ -534,7 +575,7 @@ export class SurviveScene extends Phaser.Scene {
           this,
           this.boss.x,
           this.boss.y - 20,
-          'corp_bs',
+          'obstacle-corporate-bs',
           this.boss.x + velocity.x * 2,
           this.boss.y + velocity.y * 2,
           projectileSpeed,
@@ -624,6 +665,7 @@ export class SurviveScene extends Phaser.Scene {
     // Resume camera follow
     this.cameras.main.setFollowOffset(-this.scale.width * (0.5 - PLAYER_CAMERA_SCREEN_RATIO), -140);
     this.cameras.main.startFollow(this.player, true, 1, 1);
+    this.player.setParryWindowSeconds(this.state.rank.parryWindowSeconds);
 
     // Resume spawning (restore previous spawn interval if any)
     this.obstacleSpawnInterval = 0;

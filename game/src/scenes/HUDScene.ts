@@ -22,7 +22,7 @@ export class HUDScene extends Phaser.Scene {
     const state = new GameState(this.registry);
 
     this.ageText = this.add
-      .text(16, 10, `Score: ${state.age}`, { fontSize: '30px', color: '#ffffff', fontStyle: 'bold', backgroundColor: '#182536', padding: { x: 10, y: 5 } })
+      .text(16, 10, `${state.age} years old`, { fontSize: '30px', color: '#ffffff', fontStyle: 'bold', backgroundColor: '#182536', padding: { x: 10, y: 5 } })
       .setScrollFactor(0)
       .setDepth(100);
     this.rankText = this.add
@@ -46,7 +46,7 @@ export class HUDScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100);
 
-    const onAgeChanged = (age: number) => this.ageText.setText(`Score: ${age}`);
+    const onAgeChanged = (age: number) => this.ageText.setText(`${age} years old`);
     const onRankChanged = (rank: RankConfig) => this.rankText.setText(`${rank.id} - ${rank.label}`);
     const onTokensChanged = ({ count, needed }: TokensChangedPayload) =>
       this.tokensText.setText(`Tokens: ${count}/${needed}`);
