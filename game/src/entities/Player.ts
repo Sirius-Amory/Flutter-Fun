@@ -178,7 +178,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       alpha: 0.3,
       duration: 100,
       yoyo: true,
-      repeat: 5,
+      repeat: 2,
       onComplete: () => {
         this.alpha = 1;
         this.isInvincible = false;

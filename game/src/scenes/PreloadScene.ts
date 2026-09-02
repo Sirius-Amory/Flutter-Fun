@@ -1,7 +1,13 @@
 import Phaser from 'phaser';
 import { generateTextures } from '../textures/generateTextures';
 import { CHARACTERS } from '../data/characters';
-import { BACKGROUND_ASSETS, OBSTACLE_ASSETS, PROMOTION_TOKEN_ASSET, REGULAR_TOKEN_ASSETS } from '../data/gameAssets';
+import {
+  BACKGROUND_ASSETS,
+  OBSTACLE_ASSETS,
+  PROMOTION_OPPORTUNITY_ASSET,
+  PROMOTION_TOKEN_ASSET,
+  REGULAR_TOKEN_ASSETS,
+} from '../data/gameAssets';
 
 export class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -22,7 +28,12 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     // Game assets
-    for (const asset of [...REGULAR_TOKEN_ASSETS, PROMOTION_TOKEN_ASSET, ...OBSTACLE_ASSETS]) {
+    for (const asset of [
+      ...REGULAR_TOKEN_ASSETS,
+      PROMOTION_TOKEN_ASSET,
+      PROMOTION_OPPORTUNITY_ASSET,
+      ...OBSTACLE_ASSETS,
+    ]) {
       this.load.image(asset.key, asset.source);
     }
     BACKGROUND_ASSETS.forEach((source, index) => this.load.image(`office-background-${index + 1}`, source));
@@ -51,6 +62,8 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('boss-telegraph', 'src/assets/boss/PNG/Poses/telegraph.png');
     this.load.image('boss-attack', 'src/assets/boss/PNG/Poses/attack.png');
     this.load.image('boss-staggered', 'src/assets/boss/PNG/Poses/staggered.png');
+    this.load.image('boss-fall1', 'src/assets/boss/PNG/Poses/fall_1.png');
+    this.load.image('boss-fall2', 'src/assets/boss/PNG/Poses/fall_2.png');
     this.load.image('boss-defeated', 'src/assets/boss/PNG/Poses/defeated.png');
   }
 

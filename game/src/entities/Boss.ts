@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 
 export type BossState = 'standstill' | 'telegraph' | 'attack' | 'staggered';
 
-export const BOSS_TELEGRAPH_DURATION_MS = 1000;
+export const BOSS_TELEGRAPH_DURATION_MS = 500;
 export const BOSS_ATTACK_MIN_DURATION_MS = 2000;
 export const BOSS_ATTACK_MAX_DURATION_MS = 5000;
 
@@ -18,35 +18,35 @@ export interface BossConfig {
 export const BOSS_CONFIGS: Record<number, BossConfig> = {
   1: {
     maxHealth: 3,
-    standstillDurationMs: 4000,
+    standstillDurationMs: 2000,
     staggerDurationMs: 400,
     projectileSpeed: 400,
     attackPattern: 'single',
   },
   2: {
     maxHealth: 4,
-    standstillDurationMs: 4000,
+    standstillDurationMs: 2000,
     staggerDurationMs: 350,
     projectileSpeed: 440,
     attackPattern: 'single',
   },
   3: {
     maxHealth: 4,
-    standstillDurationMs: 4000,
+    standstillDurationMs: 2000,
     staggerDurationMs: 350,
     projectileSpeed: 480,
     attackPattern: 'spread',
   },
   4: {
     maxHealth: 5,
-    standstillDurationMs: 4000,
+    standstillDurationMs: 2000,
     staggerDurationMs: 300,
     projectileSpeed: 520,
     attackPattern: 'spread',
   },
   5: {
     maxHealth: 5,
-    standstillDurationMs: 4000,
+    standstillDurationMs: 2000,
     staggerDurationMs: 300,
     projectileSpeed: 560,
     attackPattern: 'spread',
@@ -62,6 +62,9 @@ const TEXTURE_SCALE_ADJUSTMENTS: Record<string, number> = {
   'boss-walk2': 0.771,
   'boss-attack': 0.52,
   'boss-staggered': 0.546,
+  'boss-fall1': 0.539,
+  'boss-fall2': 0.573,
+  'boss-defeated': 0.935,
 };
 
 export class Boss extends Phaser.Physics.Arcade.Sprite {
@@ -71,6 +74,8 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
   private readonly config: BossConfig;
   private stateTimer = 0;
   private isStaggered = false;
+  private isDefeated = false;
+  private isWalkingIn = false;
   private baseScaleFactor: number;
 
   constructor(
@@ -110,12 +115,12 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.setDepth(5);
     this.setTexture('boss-idle2');
     this.bossState = 'standstill';
-    this.stateTimer = this.config.standstillDurationMs + Phaser.Math.Between(-1000, 1000);
+    this.stateTimer = this.config.standstillDurationMs + Phaser.Math.Between(-500, 500);
     this.applyTextureScale('boss-idle2');
   }
 
   update(deltaMs: number): void {
-    if (this.isStaggered) return;
+    if (this.isWalkingIn || this.isStaggered || this.isDefeated) return;
 
     this.stateTimer -= deltaMs;
 
@@ -158,15 +163,20 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.bossState = 'standstill';
     this.setTexture('boss-idle2');
     this.applyTextureScale('boss-idle2');
-    this.stateTimer = this.config.standstillDurationMs + Phaser.Math.Between(-1000, 1000);
+    this.stateTimer = this.config.standstillDurationMs + Phaser.Math.Between(-500, 500);
   }
 
   finishWalkIn(): void {
     this.anims.stop();
+    this.isWalkingIn = false;
     this.bossState = 'standstill';
-    this.stateTimer = this.config.standstillDurationMs + Phaser.Math.Between(-1000, 1000);
+    this.stateTimer = this.config.standstillDurationMs + Phaser.Math.Between(-500, 500);
     this.setTexture('boss-idle2');
     this.applyTextureScale('boss-idle2');
+  }
+
+  startWalkIn(): void {
+    this.isWalkingIn = true;
   }
 
   takeDamage(amount = 1): boolean {
@@ -181,7 +191,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
     this.setTint(0xff6b6b);
 
     this.scene.time.delayedCall(this.config.staggerDurationMs, () => {
-      if (this.active) {
+      if (this.active && !this.isDefeated) {
         this.isStaggered = false;
         this.clearTint();
         if (this.bossState === 'standstill') {
@@ -212,6 +222,21 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
 
   getState(): BossState {
     return this.bossState;
+  }
+
+  setDefeated(): void {
+    this.isDefeated = true;
+    this.isStaggered = false;
+    this.bossState = 'standstill';
+    this.stateTimer = 0;
+    this.clearTint();
+  }
+
+  setDefeatTexture(textureKey: 'boss-fall1' | 'boss-fall2' | 'boss-defeated'): void {
+    const previousBottom = this.y + this.displayHeight / 2;
+    this.setTexture(textureKey);
+    this.applyTextureScale(textureKey);
+    this.y = previousBottom - this.displayHeight / 2;
   }
 
   getHealth(): number {

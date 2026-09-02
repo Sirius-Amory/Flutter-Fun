@@ -6,6 +6,7 @@ import newSkill from '../assets/tokens/new_skill.png';
 import officeRomance from '../assets/tokens/office_romance.png';
 import payRise from '../assets/tokens/pay_rise.png';
 import promotion from '../assets/tokens/promotion.png';
+import promotionOpportunity from '../assets/tokens/promotion_opportunity.png';
 import badRating from '../assets/projectiles/bad_rating.png';
 import corporateBs from '../assets/projectiles/corp_bs.png';
 import deadline from '../assets/projectiles/deadline.png';
@@ -30,6 +31,7 @@ export const REGULAR_TOKEN_ASSETS = [
 ] as const;
 
 export const PROMOTION_TOKEN_ASSET = { key: 'token-promotion', source: promotion } as const;
+export const PROMOTION_OPPORTUNITY_ASSET = { key: 'promotion-opportunity', source: promotionOpportunity } as const;
 
 // Reorg is intentionally absent until its PNG is added to assets/projectiles.
 export const OBSTACLE_ASSETS = [
