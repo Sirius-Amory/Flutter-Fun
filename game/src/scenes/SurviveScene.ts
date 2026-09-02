@@ -242,6 +242,7 @@ export class SurviveScene extends Phaser.Scene {
     if (this.player.isParrying) {
       obstacle.resolveParried();
       playSfx('parry');
+      this.sound.play('sfx-punch');
       this.burst(obstacle.x, obstacle.y, 0xffe066);
       this.awardToken();
     } else {

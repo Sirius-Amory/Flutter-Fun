@@ -136,13 +136,7 @@ export class CharacterCarousel {
         continue;
       }
 
-      let portrait = this.portraits.get(character.id);
-      if (!portrait) {
-        // Create portrait image if it doesn't exist
-        portrait = this.scene.add.image(0, 0, `${character.id}-idle`);
-        this.container.add(portrait);
-        this.portraits.set(character.id, portrait);
-      }
+      const portrait = this.getOrCreatePortrait(character);
 
       const transform = this.getTransformForOffset(offset);
       portrait.setPosition(transform.x, transform.y);
@@ -151,6 +145,16 @@ export class CharacterCarousel {
       portrait.setDepth(transform.depth);
       portrait.setVisible(true);
     }
+  }
+
+  private getOrCreatePortrait(character: CharacterDef): Phaser.GameObjects.Image {
+    let portrait = this.portraits.get(character.id);
+    if (!portrait) {
+      portrait = this.scene.add.image(0, 0, `${character.id}-idle`);
+      this.container.add(portrait);
+      this.portraits.set(character.id, portrait);
+    }
+    return portrait;
   }
 
   /**
@@ -187,21 +191,27 @@ export class CharacterCarousel {
 
     for (let i = 0; i < this.characters.length; i++) {
       const character = this.characters[i];
-      const portrait = this.portraits.get(character.id);
-      if (!portrait) {
-        continue;
-      }
-
       const newOffset = this.getOffsetForIndex(i);
 
       // Skip rendering if now outside visible range
       if (Math.abs(newOffset) > this.MAX_VISIBLE_OFFSET) {
-        portrait.setVisible(false);
+        const portrait = this.portraits.get(character.id);
+        portrait?.setVisible(false);
         continue;
       }
 
+      const isNewPortrait = !this.portraits.has(character.id);
+      const portrait = this.getOrCreatePortrait(character);
       portrait.setVisible(true);
       const newTransform = this.getTransformForOffset(newOffset);
+
+      if (isNewPortrait) {
+        portrait.setPosition(newTransform.x, newTransform.y);
+        portrait.setScale(newTransform.scale);
+        portrait.setAlpha(newTransform.alpha);
+        portrait.setDepth(newTransform.depth);
+        continue;
+      }
 
       tweenCount.total++;
       this.scene.tweens.add({

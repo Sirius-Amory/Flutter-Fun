@@ -34,10 +34,14 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('mainmenu-leaderboard', 'src/assets/main-menu/mainmenu_leaderboard.png');
     this.load.image('mainmenu-start', 'src/assets/main-menu/mainmenu_start.png');
     this.load.image('mainmenu-proj2', 'src/assets/main-menu/proj2.png');
+    this.load.image('icon-mute', 'src/assets/main-menu/mute.png');
+    this.load.image('icon-unmute', 'src/assets/main-menu/unmute.png');
 
     // Main menu sounds
     this.load.audio('main-menu-sound', 'src/assets/sounds/main-menu.mp3');
     this.load.audio('whiteboard-sound', 'src/assets/sounds/whiteboard-sound.mp3');
+    this.load.audio('sfx-swish', 'src/assets/sounds/swish.mp3');
+    this.load.audio('sfx-punch', 'src/assets/sounds/punch.mp3');
   }
 
   create(): void {

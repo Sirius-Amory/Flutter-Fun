@@ -4,7 +4,7 @@ const STEP_MS = 500;
 
 let context: AudioContext | null = null;
 let timer: ReturnType<typeof setInterval> | null = null;
-let enabled = true;
+let musicMuted = false;
 let step = 0;
 
 function getContext(): AudioContext | null {
@@ -21,7 +21,7 @@ function getContext(): AudioContext | null {
 }
 
 function playStep(): void {
-  if (!enabled) return;
+  if (musicMuted) return;
   const ctx = getContext();
   if (!ctx) return;
 
@@ -58,6 +58,10 @@ export function stopBackgroundMusic(): void {
 }
 
 export function toggleMusic(): boolean {
-  enabled = !enabled;
-  return enabled;
+  musicMuted = !musicMuted;
+  return musicMuted;
+}
+
+export function isMusicMuted(): boolean {
+  return musicMuted;
 }

@@ -1,9 +1,13 @@
 import Phaser from 'phaser';
-import { startBackgroundMusic } from '../audio/MusicManager';
+import { isMusicMuted, startBackgroundMusic, toggleMusic } from '../audio/MusicManager';
 import { createButton } from '../ui/createButton';
-import { CHARACTERS } from '../data/characters';
+import { CHARACTERS, getCharacterById } from '../data/characters';
 import { GameState } from '../state/GameState';
 import { CharacterCarousel } from '../ui/CharacterCarousel';
+
+const ICON_WIDTH_PCT = 0.09;
+const ICON_EDGE_PCT = 0.09;
+const MENU_MUSIC_VOLUME = 0.5;
 
 export class MainMenuScene extends Phaser.Scene {
   private carousel!: CharacterCarousel;
@@ -16,6 +20,9 @@ export class MainMenuScene extends Phaser.Scene {
   private proj2IsVisible: boolean = false;
   private proj2IsAnimating: boolean = false;
   private mainMenuSound?: Phaser.Sound.BaseSound;
+  private leaderboardIcon!: Phaser.GameObjects.Image;
+  private controlsIcon!: Phaser.GameObjects.Image;
+  private musicToggleIcon!: Phaser.GameObjects.Image;
 
   constructor() {
     super('MainMenu');
@@ -30,7 +37,10 @@ export class MainMenuScene extends Phaser.Scene {
       soundManager.context.resume();
     }
 
-    this.mainMenuSound = this.sound.add('main-menu-sound', { loop: true, volume: 0.5 });
+    this.mainMenuSound = this.sound.add('main-menu-sound', {
+      loop: true,
+      volume: isMusicMuted() ? 0 : MENU_MUSIC_VOLUME,
+    });
     this.mainMenuSound.play();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.stopMainMenuSound, this);
 
@@ -48,7 +58,8 @@ export class MainMenuScene extends Phaser.Scene {
     const carouselY = height * 0.60;
     this.carousel = new CharacterCarousel(this, width / 2, carouselY, CHARACTERS);
     const savedCharacterId = new GameState(this.registry).characterId;
-    const savedIndex = CHARACTERS.findIndex((character) => character.id === savedCharacterId);
+    const savedCharacter = getCharacterById(savedCharacterId);
+    const savedIndex = CHARACTERS.findIndex((character) => character.id === savedCharacter.id);
     this.carousel.initialize(savedIndex);
     this.carousel.container.setDepth(20);
 
@@ -71,17 +82,22 @@ export class MainMenuScene extends Phaser.Scene {
     startButton.setDepth(20);
 
     // 5. Leaderboard icon (top-right)
-    const leaderboardIcon = this.add.image(width - 90, 90, 'mainmenu-leaderboard');
-    leaderboardIcon.setScale(0.5);
-    leaderboardIcon.setInteractive({ useHandCursor: true });
-    leaderboardIcon.on('pointerdown', () => this.scene.start('Leaderboard'));
-    leaderboardIcon.setDepth(30);
+    this.leaderboardIcon = this.add.image(0, 0, 'mainmenu-leaderboard');
+    this.leaderboardIcon.setInteractive({ useHandCursor: true });
+    this.leaderboardIcon.on('pointerdown', () => this.scene.start('Leaderboard'));
+    this.leaderboardIcon.setDepth(30);
 
     // 6. Controls icon (top-left) with tooltip
-    const controlsIcon = this.add.image(90, 90, 'mainmenu-controls');
-    controlsIcon.setScale(0.5);
-    controlsIcon.setInteractive({ useHandCursor: true });
-    controlsIcon.setDepth(30);
+    this.controlsIcon = this.add.image(0, 0, 'mainmenu-controls');
+    this.controlsIcon.setInteractive({ useHandCursor: true });
+    this.controlsIcon.setDepth(30);
+
+    this.musicToggleIcon = this.add.image(0, 0, isMusicMuted() ? 'icon-unmute' : 'icon-mute');
+    this.musicToggleIcon.setInteractive({ useHandCursor: true });
+    this.musicToggleIcon.on('pointerdown', () => this.toggleMenuMusic());
+    this.musicToggleIcon.setDepth(30);
+    this.layout();
+    this.scale.on(Phaser.Scale.Events.RESIZE, this.layout, this);
 
     // Create proj2 image (whiteboard) with fixed scale to preserve aspect ratio
     this.proj2Image = this.add.image(0, height / 2, 'mainmenu-proj2');
@@ -99,7 +115,7 @@ export class MainMenuScene extends Phaser.Scene {
     this.proj2Speed = 0;
 
     // Toggle the whiteboard on click; ignore clicks while it is moving.
-    controlsIcon.on('pointerdown', () => {
+    this.controlsIcon.on('pointerdown', () => {
       if (this.proj2IsAnimating) {
         return;
       }
@@ -169,6 +185,7 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private rotateCarousel(direction: 1 | -1): void {
+    this.sound.play('sfx-swish');
     this.carousel.rotateCarousel(direction);
     this.updateCharacterLabel();
     const character = this.carousel.getCurrentCharacter();
@@ -191,7 +208,31 @@ export class MainMenuScene extends Phaser.Scene {
     this.mainMenuSound = undefined;
   }
 
+  private toggleMenuMusic(): void {
+    const musicMuted = toggleMusic();
+    (this.mainMenuSound as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound | undefined)?.setVolume(
+      musicMuted ? 0 : MENU_MUSIC_VOLUME
+    );
+    this.musicToggleIcon.setTexture(musicMuted ? 'icon-unmute' : 'icon-mute');
+  }
+
+  private layout(): void {
+    const { width, height } = this.scale;
+    const iconWidth = width * ICON_WIDTH_PCT;
+    const iconEdge = width * ICON_EDGE_PCT;
+
+    for (const icon of [this.leaderboardIcon, this.controlsIcon, this.musicToggleIcon]) {
+      icon.setDisplaySize(iconWidth, (icon.height / icon.width) * iconWidth);
+    }
+    this.musicToggleIcon.setDisplaySize(iconWidth / 2, (this.musicToggleIcon.height / this.musicToggleIcon.width) * (iconWidth / 2));
+
+    this.controlsIcon.setPosition(iconEdge/2, iconEdge/2);
+    this.leaderboardIcon.setPosition(width - iconEdge/2, iconEdge/2);
+    this.musicToggleIcon.setPosition(width - iconEdge/2, height - iconEdge/2);
+  }
+
   shutdown(): void {
+    this.scale.off(Phaser.Scale.Events.RESIZE, this.layout, this);
     this.carousel.destroy();
   }
 }
