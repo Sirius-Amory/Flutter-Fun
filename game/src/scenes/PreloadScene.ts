@@ -33,10 +33,16 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('mainmenu-controls', 'src/assets/main-menu/mainmenu_controls.png');
     this.load.image('mainmenu-leaderboard', 'src/assets/main-menu/mainmenu_leaderboard.png');
     this.load.image('mainmenu-start', 'src/assets/main-menu/mainmenu_start.png');
+    this.load.image('mainmenu-proj2', 'src/assets/main-menu/proj2.png');
+
+    // Main menu sounds
+    this.load.audio('main-menu-sound', 'src/assets/sounds/main-menu.mp3');
+    this.load.audio('whiteboard-sound', 'src/assets/sounds/whiteboard-sound.mp3');
   }
 
   create(): void {
     generateTextures(this);
+    console.log('Preload complete. Available audio:', Object.keys(this.cache.audio?.entries || {}));
     this.scene.start('MainMenu');
   }
 }

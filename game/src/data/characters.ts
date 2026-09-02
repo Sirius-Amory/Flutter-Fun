@@ -59,7 +59,7 @@ export interface CharacterDef {
 export const CHARACTERS: CharacterDef[] = [
   {
     id: 'adventurer',
-    label: 'Adventurer',
+    label: 'Braxxtyn Jaxxtyn',
     idle: adventurerIdle,
     walk: [adventurerWalk1, adventurerWalk2],
     jump: adventurerJump,
@@ -70,7 +70,7 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'female',
-    label: 'Female',
+    label: 'Tragedeigh',
     idle: femaleIdle,
     walk: [femaleWalk1, femaleWalk2],
     jump: femaleJump,
@@ -81,7 +81,7 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'player',
-    label: 'Player',
+    label: 'Ptomhas',
     idle: playerIdle,
     walk: [playerWalk1, playerWalk2],
     jump: playerJump,
@@ -92,7 +92,7 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'soldier',
-    label: 'Soldier',
+    label: 'Glort',
     idle: soldierIdle,
     walk: [soldierWalk1, soldierWalk2],
     jump: soldierJump,
@@ -103,7 +103,7 @@ export const CHARACTERS: CharacterDef[] = [
   },
   {
     id: 'zombie',
-    label: 'Zombie',
+    label: 'Carl',
     idle: zombieIdle,
     walk: [zombieWalk1, zombieWalk2],
     jump: zombieJump,

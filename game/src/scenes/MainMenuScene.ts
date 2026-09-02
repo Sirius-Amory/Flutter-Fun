@@ -8,8 +8,14 @@ import { CharacterCarousel } from '../ui/CharacterCarousel';
 export class MainMenuScene extends Phaser.Scene {
   private carousel!: CharacterCarousel;
   private characterLabel!: Phaser.GameObjects.Text;
-  private controlsTooltip?: Phaser.GameObjects.Container;
-  private isTooltipOpen: boolean = false;
+  private proj2Image?: Phaser.GameObjects.Image;
+  private proj2TargetX: number = 0;
+  private proj2Speed: number = 0;
+  private proj2AnimationDuration: number = 3000;
+  private proj2OffscreenX: number = 0;
+  private proj2IsVisible: boolean = false;
+  private proj2IsAnimating: boolean = false;
+  private mainMenuSound?: Phaser.Sound.BaseSound;
 
   constructor() {
     super('MainMenu');
@@ -17,6 +23,16 @@ export class MainMenuScene extends Phaser.Scene {
 
   create(): void {
     const { width, height } = this.scale;
+
+    // Resume audio context if available (required for browser autoplay policies)
+    const soundManager = this.sound as any;
+    if (soundManager.context && soundManager.context.state === 'suspended') {
+      soundManager.context.resume();
+    }
+
+    this.mainMenuSound = this.sound.add('main-menu-sound', { loop: true, volume: 0.5 });
+    this.mainMenuSound.play();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.stopMainMenuSound, this);
 
     // 1. Background image (fill canvas, maintain aspect ratio with crop)
     const background = this.add.image(width / 2, height / 2, 'mainmenu-background');
@@ -55,31 +71,58 @@ export class MainMenuScene extends Phaser.Scene {
     startButton.setDepth(20);
 
     // 5. Leaderboard icon (top-right)
-    const leaderboardIcon = this.add.image(width - 40, 40, 'mainmenu-leaderboard');
+    const leaderboardIcon = this.add.image(width - 90, 90, 'mainmenu-leaderboard');
     leaderboardIcon.setScale(0.5);
     leaderboardIcon.setInteractive({ useHandCursor: true });
     leaderboardIcon.on('pointerdown', () => this.scene.start('Leaderboard'));
     leaderboardIcon.setDepth(30);
 
     // 6. Controls icon (top-left) with tooltip
-    const controlsIcon = this.add.image(40, 40, 'mainmenu-controls');
+    const controlsIcon = this.add.image(90, 90, 'mainmenu-controls');
     controlsIcon.setScale(0.5);
     controlsIcon.setInteractive({ useHandCursor: true });
     controlsIcon.setDepth(30);
 
-    // Create tooltip (initially hidden)
-    this.controlsTooltip = this.createControlsTooltip();
-    this.controlsTooltip.setVisible(false);
+    // Create proj2 image (whiteboard) with fixed scale to preserve aspect ratio
+    this.proj2Image = this.add.image(0, height / 2, 'mainmenu-proj2');
+    this.proj2Image.setScale(0.47); // 2/3 of original 0.7 scale
 
-    // Tooltip interactions
-    controlsIcon.on('pointerover', () => this.showTooltip());
-    controlsIcon.on('pointerout', () => this.hideTooltip());
-    controlsIcon.on('pointerdown', () => this.toggleTooltip());
+    // Position "just out of frame" — based on the image's own (scaled) width,
+    // not the full canvas width, so it's just past the left edge rather than
+    // fully off-screen.
+    const proj2HalfWidth = this.proj2Image.displayWidth / 2;
+    this.proj2OffscreenX = -proj2HalfWidth;
+    this.proj2Image.x = this.proj2OffscreenX;
+    this.proj2Image.setDepth(35);
 
-    // Close tooltip on click elsewhere
-    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
-      if (this.isTooltipOpen && !this.isPointerOverIcon(pointer, controlsIcon)) {
-        this.hideTooltip();
+    this.proj2TargetX = this.proj2OffscreenX;
+    this.proj2Speed = 0;
+
+    // Toggle the whiteboard on click; ignore clicks while it is moving.
+    controlsIcon.on('pointerdown', () => {
+      if (this.proj2IsAnimating) {
+        return;
+      }
+
+      // Ensure audio context is not suspended
+      const soundManager = this.sound as any;
+      if (soundManager.context && soundManager.context.state === 'suspended') {
+        soundManager.context.resume();
+      }
+
+      this.proj2IsVisible = !this.proj2IsVisible;
+      this.proj2TargetX = this.proj2IsVisible ? width / 6 : this.proj2OffscreenX;
+      this.proj2Speed = (this.proj2TargetX - (this.proj2Image?.x ?? this.proj2OffscreenX)) / this.proj2AnimationDuration;
+      this.proj2IsAnimating = true;
+
+      // Play whiteboard sound
+      try {
+        this.sound.play('whiteboard-sound', {
+          volume: 1,
+          duration: this.proj2AnimationDuration / 1000,
+        });
+      } catch (e) {
+        console.error('Error playing whiteboard sound:', e);
       }
     });
 
@@ -87,66 +130,19 @@ export class MainMenuScene extends Phaser.Scene {
     this.setupKeyboardInput();
   }
 
-  /**
-   * Create the controls tooltip container.
-   */
-  private createControlsTooltip(): Phaser.GameObjects.Container {
-    const controlsText =
-      'Arrow keys / WASD to move • Up / Space to jump • Control to crouch • Shift / X to parry';
+  update(): void {
+    // Animate proj2 image smoothly
+    if (this.proj2Image && this.proj2Speed !== 0) {
+      const newX = this.proj2Image.x + this.proj2Speed * (this.game.loop.delta || 16);
 
-    // Create background panel
-    const textObj = this.add.text(0, 0, controlsText, {
-      fontSize: '12px',
-      color: '#ffffff',
-      align: 'left',
-      wordWrap: { width: 280 },
-    });
-    const padding = 15;
-    const bg = this.add.rectangle(
-      textObj.width / 2,
-      textObj.height / 2,
-      textObj.width + padding * 2,
-      textObj.height + padding * 2,
-      0x000000,
-      0.8
-    );
-    bg.setStrokeStyle(2, 0xffd23f);
-
-    // Position tooltip: expand right/down from icon (top-left is at 40, 40)
-    const tooltipX = 80; // Right of icon
-    const tooltipY = 80; // Below icon
-    const container = this.add.container(tooltipX, tooltipY, [bg, textObj]);
-    container.setDepth(40);
-    return container;
-  }
-
-  /**
-   * Check if pointer is over the controls icon.
-   */
-  private isPointerOverIcon(pointer: Phaser.Input.Pointer, icon: Phaser.GameObjects.Image): boolean {
-    const bounds = icon.getBounds();
-    return bounds.contains(pointer.x, pointer.y);
-  }
-
-  private showTooltip(): void {
-    if (!this.isTooltipOpen) {
-      this.controlsTooltip?.setVisible(true);
-      this.isTooltipOpen = true;
-    }
-  }
-
-  private hideTooltip(): void {
-    if (this.isTooltipOpen) {
-      this.controlsTooltip?.setVisible(false);
-      this.isTooltipOpen = false;
-    }
-  }
-
-  private toggleTooltip(): void {
-    if (this.isTooltipOpen) {
-      this.hideTooltip();
-    } else {
-      this.showTooltip();
+      // Check if we've reached the target
+      if ((this.proj2Speed > 0 && newX >= this.proj2TargetX) || (this.proj2Speed < 0 && newX <= this.proj2TargetX)) {
+        this.proj2Image.x = this.proj2TargetX;
+        this.proj2Speed = 0;
+        this.proj2IsAnimating = false;
+      } else {
+        this.proj2Image.x = newX;
+      }
     }
   }
 
@@ -185,12 +181,17 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private startGame(): void {
+    this.stopMainMenuSound();
     startBackgroundMusic();
     this.scene.start('Survive');
+  }
+
+  private stopMainMenuSound(): void {
+    this.mainMenuSound?.destroy();
+    this.mainMenuSound = undefined;
   }
 
   shutdown(): void {
     this.carousel.destroy();
   }
 }
-
