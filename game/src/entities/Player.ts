@@ -176,7 +176,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.scene.tweens.add({
       targets: this,
       alpha: 0.3,
-      duration: 100,
+      duration: 50,
       yoyo: true,
       repeat: 2,
       onComplete: () => {

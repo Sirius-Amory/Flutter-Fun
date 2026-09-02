@@ -184,10 +184,14 @@ export class SurviveScene extends Phaser.Scene {
       this.spawnObstacle(rank);
     }
 
-    this.tokenSpawnAccumulator += delta;
-    if (this.tokenSpawnAccumulator >= rank.tokenSpawnIntervalMs) {
+    if (this.tokens.getChildren().length === 0) {
+      this.tokenSpawnAccumulator += delta;
+      if (this.tokenSpawnAccumulator >= rank.tokenSpawnIntervalMs) {
+        this.tokenSpawnAccumulator = 0;
+        this.spawnToken(rank);
+      }
+    } else {
       this.tokenSpawnAccumulator = 0;
-      this.spawnToken(rank);
     }
   }
 
@@ -449,7 +453,6 @@ export class SurviveScene extends Phaser.Scene {
     this.tokenSpawnAccumulator = 0;
     this.tokens.clear(true, true);
 
-    // Freeze parallax scroll by pausing camera movement
     this.cameras.main.stopFollow();
 
     // Show the promotion opportunity flash screen
@@ -736,9 +739,10 @@ export class SurviveScene extends Phaser.Scene {
     // Clear all boss projectiles
     this.clearBossProjectiles();
 
-    // Resume camera follow
-    this.cameras.main.setFollowOffset(-this.scale.width * (0.5 - PLAYER_CAMERA_SCREEN_RATIO), -140);
-    this.cameras.main.startFollow(this.player, true, 1, 1);
+    const camera = this.cameras.main;
+    const offsetX = this.player.x - camera.scrollX - camera.width / 2;
+    const offsetY = this.player.y - camera.scrollY - camera.height / 2;
+    camera.startFollow(this.player, true, 1, 1, offsetX, offsetY);
     this.player.setParryWindowSeconds(this.state.rank.parryWindowSeconds);
 
     // Resume spawning (restore previous spawn interval if any)

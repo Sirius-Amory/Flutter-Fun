@@ -41,7 +41,7 @@ export const RANKS: RankConfig[] = [
     obstacleSpawnMinMs: ((spawnIntervalMs as number) - 250) * SPAWN_INTERVAL_MULTIPLIER,
     obstacleSpawnMaxMs: ((spawnIntervalMs as number) + 250) * SPAWN_INTERVAL_MULTIPLIER,
     obstacleSpeed: obstacleSpeed as number, obstacleSpawnHeightMin: 50, obstacleSpawnHeightMax: 170,
-    obstacleRotationSpeed: 18, tokenSpawnIntervalMs: (1500 - index * 35) * SPAWN_INTERVAL_MULTIPLIER,
+    obstacleRotationSpeed: 18, tokenSpawnIntervalMs: (1500 - index * 35) * SPAWN_INTERVAL_MULTIPLIER * 2,
     tokenMotionSpeed: (2.2 + index * 0.04) * TOKEN_MOTION_SPEED_MULTIPLIER, badgeDisplaySize: 58 + Math.min(index, 5),
     playerScale: playerScale as number, tokensToPromote: tokensToPromote as number,
   })),

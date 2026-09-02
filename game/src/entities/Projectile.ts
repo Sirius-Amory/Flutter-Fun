@@ -3,12 +3,11 @@ import { COLLECTIBLE_RENDER_SCALE } from './Collectible';
 
 export class Projectile extends Phaser.Physics.Arcade.Sprite {
   private resolved = false;
-  private readonly rotationSpeed: number;
   private readonly velocity = new Phaser.Math.Vector2();
   private previousX: number;
   private previousY: number;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, targetX: number, targetY: number, speed: number, rotationSpeed: number, displaySize: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string, targetX: number, targetY: number, speed: number, _rotationSpeed: number, displaySize: number) {
     super(scene, x, y, textureKey);
     scene.add.existing(this);
     scene.physics.add.existing(this);
@@ -16,12 +15,11 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     const direction = new Phaser.Math.Vector2(targetX - x, targetY - y).normalize();
-    this.setDisplaySize(displaySize * COLLECTIBLE_RENDER_SCALE, displaySize * COLLECTIBLE_RENDER_SCALE);
+    this.setDisplaySize(displaySize * COLLECTIBLE_RENDER_SCALE * 1.5, displaySize * COLLECTIBLE_RENDER_SCALE * 1.5);
     this.setSize(this.width * 0.78, this.height * 0.78);
     this.setOffset((this.width - body.width) / 2, (this.height - body.height) / 2);
     this.velocity.set(direction.x * speed, direction.y * speed);
     body.setVelocity(0, 0);
-    this.rotationSpeed = rotationSpeed;
     this.previousX = x;
     this.previousY = y;
   }
@@ -34,7 +32,6 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.x += this.velocity.x * deltaSeconds;
     this.y += this.velocity.y * deltaSeconds;
     (this.body as Phaser.Physics.Arcade.Body).reset(this.x, this.y);
-    this.angle += this.rotationSpeed * deltaSeconds;
   }
 
   getSweptBodyBounds(): Phaser.Geom.Rectangle {
@@ -74,7 +71,6 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     this.scene.tweens.add({
       targets: this,
       scale: 1.6,
-      angle: 180,
       alpha: 0,
       duration: 200,
       onComplete: () => this.destroy(),
