@@ -42,10 +42,31 @@ export class PreloadScene extends Phaser.Scene {
     this.load.audio('whiteboard-sound', 'src/assets/sounds/whiteboard-sound.mp3');
     this.load.audio('sfx-swish', 'src/assets/sounds/swish.mp3');
     this.load.audio('sfx-punch', 'src/assets/sounds/punch.mp3');
+
+    // Boss encounter poses (128x128, facing left, transparent backgrounds)
+    this.load.image('boss-idle', 'src/assets/boss/PNG/Poses/idle.png');
+    this.load.image('boss-idle2', 'src/assets/boss/PNG/Poses/idle 2.png');
+    this.load.image('boss-walk1', 'src/assets/boss/PNG/Poses/walk 1.png');
+    this.load.image('boss-walk2', 'src/assets/boss/PNG/Poses/walk 2.png');
+    this.load.image('boss-telegraph', 'src/assets/boss/PNG/Poses/telegraph.png');
+    this.load.image('boss-attack', 'src/assets/boss/PNG/Poses/attack.png');
+    this.load.image('boss-staggered', 'src/assets/boss/PNG/Poses/staggered.png');
+    this.load.image('boss-defeated', 'src/assets/boss/PNG/Poses/defeated.png');
   }
 
   create(): void {
     generateTextures(this);
+
+    // Boss walk-in animation: 2-frame loop at ~7 fps
+    if (!this.anims.exists('boss-walk-in')) {
+      this.anims.create({
+        key: 'boss-walk-in',
+        frames: [{ key: 'boss-walk1' }, { key: 'boss-walk2' }],
+        frameRate: 7,
+        repeat: -1,
+      });
+    }
+
     console.log('Preload complete. Available audio:', Object.keys(this.cache.audio?.entries || {}));
     this.scene.start('MainMenu');
   }

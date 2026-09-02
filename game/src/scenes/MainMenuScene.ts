@@ -92,7 +92,7 @@ export class MainMenuScene extends Phaser.Scene {
     this.controlsIcon.setInteractive({ useHandCursor: true });
     this.controlsIcon.setDepth(30);
 
-    this.musicToggleIcon = this.add.image(0, 0, isMusicMuted() ? 'icon-unmute' : 'icon-mute');
+    this.musicToggleIcon = this.add.image(0, 0, isMusicMuted() ? 'icon-mute' : 'icon-unmute');
     this.musicToggleIcon.setInteractive({ useHandCursor: true });
     this.musicToggleIcon.on('pointerdown', () => this.toggleMenuMusic());
     this.musicToggleIcon.setDepth(30);
@@ -213,7 +213,7 @@ export class MainMenuScene extends Phaser.Scene {
     (this.mainMenuSound as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound | undefined)?.setVolume(
       musicMuted ? 0 : MENU_MUSIC_VOLUME
     );
-    this.musicToggleIcon.setTexture(musicMuted ? 'icon-unmute' : 'icon-mute');
+    this.musicToggleIcon.setTexture(musicMuted ? 'icon-mute' : 'icon-unmute');
   }
 
   private layout(): void {

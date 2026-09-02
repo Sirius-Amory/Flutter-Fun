@@ -85,6 +85,10 @@ export class GameState {
     return next;
   }
 
+  resetHits(): void {
+    this.store.set(KEYS.hits, 0);
+  }
+
   get isDefeated(): boolean {
     return this.hits >= MAX_HITS;
   }
