@@ -306,7 +306,6 @@ export class SurviveScene extends Phaser.Scene {
     if (this.player.isParrying) {
       obstacle.resolveParried();
       this.burst(obstacle.x, obstacle.y, 0xffe066);
-      this.awardToken();
     } else {
       obstacle.resolveHit();
       this.registerHit();
@@ -752,7 +751,7 @@ export class SurviveScene extends Phaser.Scene {
     if (!this.gameplayMusic) {
       this.gameplayMusic = this.sound.add('game-music', {
         loop: true,
-        volume: isMusicMuted() ? 0 : 0.5,
+        volume: isMusicMuted() ? 0 : 0.05,
       });
     }
     if (!this.gameplayMusic.isPlaying) {
