@@ -39,40 +39,40 @@ export class PreloadScene extends Phaser.Scene {
     BACKGROUND_ASSETS.forEach((source, index) => this.load.image(`office-background-${index + 1}`, source));
 
     // Main menu assets
-    this.load.image('mainmenu-background', 'src/assets/main-menu/mainmenu_background.jpg');
-    this.load.image('mainmenu-logo', 'src/assets/main-menu/mainmenu_logo.png');
-    this.load.image('mainmenu-controls', 'src/assets/main-menu/mainmenu_controls.png');
-    this.load.image('mainmenu-leaderboard', 'src/assets/main-menu/mainmenu_leaderboard.png');
-    this.load.image('mainmenu-start', 'src/assets/main-menu/mainmenu_start.png');
-    this.load.image('mainmenu-proj2', 'src/assets/main-menu/proj2.png');
-    this.load.image('icon-mute', 'src/assets/main-menu/mute.png');
-    this.load.image('icon-unmute', 'src/assets/main-menu/unmute.png');
+    this.load.image('mainmenu-background', 'assets/main-menu/mainmenu_background.jpg');
+    this.load.image('mainmenu-logo', 'assets/main-menu/mainmenu_logo.png');
+    this.load.image('mainmenu-controls', 'assets/main-menu/mainmenu_controls.png');
+    this.load.image('mainmenu-leaderboard', 'assets/main-menu/mainmenu_leaderboard.png');
+    this.load.image('mainmenu-start', 'assets/main-menu/mainmenu_start.png');
+    this.load.image('mainmenu-proj2', 'assets/main-menu/proj2.png');
+    this.load.image('icon-mute', 'assets/main-menu/mute.png');
+    this.load.image('icon-unmute', 'assets/main-menu/unmute.png');
 
     // HUD icons
-    this.load.image('hud-icon-age', 'src/assets/hud/icons/age.png');
-    this.load.image('hud-icon-rank', 'src/assets/hud/icons/rank.png');
-    this.load.image('hud-icon-highlight', 'src/assets/hud/icons/highlight.png');
-    this.load.image('hud-icon-setback', 'src/assets/hud/icons/setback.png');
+    this.load.image('hud-icon-age', 'assets/hud/icons/age.png');
+    this.load.image('hud-icon-rank', 'assets/hud/icons/rank.png');
+    this.load.image('hud-icon-highlight', 'assets/hud/icons/highlight.png');
+    this.load.image('hud-icon-setback', 'assets/hud/icons/setback.png');
 
     // Main menu sounds
-    this.load.audio('menu', 'src/assets/sounds/menu.mp3');
-    this.load.audio('game-music', 'src/assets/sounds/game-music.mp3');
-    this.load.audio('game-sfx', 'src/assets/sounds/game-sfx.mp3');
-    this.load.audio('boss', 'src/assets/sounds/boss.mp3');
-    this.load.audio('whiteboard-sound', 'src/assets/sounds/whiteboard-sound.mp3');
-    this.load.audio('sfx-swish', 'src/assets/sounds/swish.mp3');
+    this.load.audio('menu', 'assets/sounds/menu.mp3');
+    this.load.audio('game-music', 'assets/sounds/game-music.mp3');
+    this.load.audio('game-sfx', 'assets/sounds/game-sfx.mp3');
+    this.load.audio('boss', 'assets/sounds/boss.mp3');
+    this.load.audio('whiteboard-sound', 'assets/sounds/whiteboard-sound.mp3');
+    this.load.audio('sfx-swish', 'assets/sounds/swish.mp3');
 
     // Boss encounter poses (128x128, facing left, transparent backgrounds)
-    this.load.image('boss-idle', 'src/assets/boss/PNG/Poses/idle.png');
-    this.load.image('boss-idle2', 'src/assets/boss/PNG/Poses/idle 2.png');
-    this.load.image('boss-walk1', 'src/assets/boss/PNG/Poses/walk 1.png');
-    this.load.image('boss-walk2', 'src/assets/boss/PNG/Poses/walk 2.png');
-    this.load.image('boss-telegraph', 'src/assets/boss/PNG/Poses/telegraph.png');
-    this.load.image('boss-attack', 'src/assets/boss/PNG/Poses/attack.png');
-    this.load.image('boss-staggered', 'src/assets/boss/PNG/Poses/staggered.png');
-    this.load.image('boss-fall1', 'src/assets/boss/PNG/Poses/fall_1.png');
-    this.load.image('boss-fall2', 'src/assets/boss/PNG/Poses/fall_2.png');
-    this.load.image('boss-defeated', 'src/assets/boss/PNG/Poses/defeated.png');
+    this.load.image('boss-idle', 'assets/boss/PNG/Poses/idle.png');
+    this.load.image('boss-idle2', 'assets/boss/PNG/Poses/idle 2.png');
+    this.load.image('boss-walk1', 'assets/boss/PNG/Poses/walk 1.png');
+    this.load.image('boss-walk2', 'assets/boss/PNG/Poses/walk 2.png');
+    this.load.image('boss-telegraph', 'assets/boss/PNG/Poses/telegraph.png');
+    this.load.image('boss-attack', 'assets/boss/PNG/Poses/attack.png');
+    this.load.image('boss-staggered', 'assets/boss/PNG/Poses/staggered.png');
+    this.load.image('boss-fall1', 'assets/boss/PNG/Poses/fall_1.png');
+    this.load.image('boss-fall2', 'assets/boss/PNG/Poses/fall_2.png');
+    this.load.image('boss-defeated', 'assets/boss/PNG/Poses/defeated.png');
   }
 
   create(): void {
