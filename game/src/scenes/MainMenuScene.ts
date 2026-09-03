@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { isMusicMuted, startBackgroundMusic, toggleMusic } from '../audio/MusicManager';
+import { isMusicMuted, toggleMusic } from '../audio/MusicManager';
 import { createButton } from '../ui/createButton';
 import { CHARACTERS, getCharacterById } from '../data/characters';
 import { GameState } from '../state/GameState';
@@ -7,7 +7,7 @@ import { CharacterCarousel } from '../ui/CharacterCarousel';
 
 const ICON_WIDTH_PCT = 0.09;
 const ICON_EDGE_PCT = 0.09;
-const MENU_MUSIC_VOLUME = 0.5;
+const MENU_MUSIC_VOLUME = 0.05;
 
 export class MainMenuScene extends Phaser.Scene {
   private carousel!: CharacterCarousel;
@@ -37,7 +37,7 @@ export class MainMenuScene extends Phaser.Scene {
       soundManager.context.resume();
     }
 
-    this.mainMenuSound = this.sound.add('main-menu-sound', {
+    this.mainMenuSound = this.sound.add('menu', {
       loop: true,
       volume: isMusicMuted() ? 0 : MENU_MUSIC_VOLUME,
     });
@@ -199,7 +199,6 @@ export class MainMenuScene extends Phaser.Scene {
 
   private startGame(): void {
     this.stopMainMenuSound();
-    startBackgroundMusic();
     this.scene.start('Survive');
   }
 

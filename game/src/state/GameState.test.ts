@@ -46,6 +46,14 @@ describe('GameState', () => {
     expect(state.tokens).toBe(0);
   });
 
+  it('caps tokens at the current rank promotion requirement', () => {
+    for (let index = 0; index < RANKS[0].tokensToPromote + 1; index += 1) {
+      state.addToken();
+    }
+
+    expect(state.tokens).toBe(RANKS[0].tokensToPromote);
+  });
+
   it('derives age and rank from rankIndex', () => {
     state.rankIndex = 2;
     expect(state.rank).toBe(RANKS[2]);

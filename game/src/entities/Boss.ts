@@ -11,45 +11,45 @@ export interface BossConfig {
   standstillDurationMs: number;
   staggerDurationMs: number;
   projectileSpeed: number;
-  attackPattern: 'single' | 'spread';
+  rapidAttackChance: number;
 }
 
 // Default boss configuration - indexed by rank
 export const BOSS_CONFIGS: Record<number, BossConfig> = {
   1: {
-    maxHealth: 3,
+    maxHealth: 10,
     standstillDurationMs: 2000,
     staggerDurationMs: 400,
     projectileSpeed: 400,
-    attackPattern: 'single',
+    rapidAttackChance: 0,
   },
   2: {
-    maxHealth: 4,
+    maxHealth: 13,
     standstillDurationMs: 2000,
     staggerDurationMs: 350,
     projectileSpeed: 440,
-    attackPattern: 'single',
+    rapidAttackChance: 0,
   },
   3: {
-    maxHealth: 4,
+    maxHealth: 15,
     standstillDurationMs: 2000,
     staggerDurationMs: 350,
     projectileSpeed: 480,
-    attackPattern: 'spread',
+    rapidAttackChance: 0.25,
   },
   4: {
-    maxHealth: 5,
+    maxHealth: 20,
     standstillDurationMs: 2000,
     staggerDurationMs: 300,
     projectileSpeed: 520,
-    attackPattern: 'spread',
+    rapidAttackChance: 0.5,
   },
   5: {
-    maxHealth: 5,
+    maxHealth: 25,
     standstillDurationMs: 2000,
     staggerDurationMs: 300,
     projectileSpeed: 560,
-    attackPattern: 'spread',
+    rapidAttackChance: 0.75,
   },
 };
 
@@ -77,6 +77,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
   private isDefeated = false;
   private isWalkingIn = false;
   private baseScaleFactor: number;
+  private attackPattern: 'single' | 'rapid' = 'single';
 
   constructor(
     scene: Phaser.Scene,
@@ -154,6 +155,7 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
 
   private transitionToAttack(): void {
     this.bossState = 'attack';
+    this.attackPattern = Math.random() < this.config.rapidAttackChance ? 'rapid' : 'single';
     this.setTexture('boss-attack');
     this.applyTextureScale('boss-attack');
     this.stateTimer = Phaser.Math.Between(BOSS_ATTACK_MIN_DURATION_MS, BOSS_ATTACK_MAX_DURATION_MS);
@@ -249,6 +251,10 @@ export class Boss extends Phaser.Physics.Arcade.Sprite {
 
   getConfig(): BossConfig {
     return this.config;
+  }
+
+  getAttackPattern(): 'single' | 'rapid' {
+    return this.attackPattern;
   }
 
 

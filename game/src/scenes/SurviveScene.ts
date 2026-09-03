@@ -21,7 +21,7 @@ import type { TokenMotionPattern } from '../entities/TokenMotion';
 import { GameState } from '../state/GameState';
 import { eventBus, GameEvents } from '../events';
 import { playSfx } from '../audio/SfxManager';
-import { startBackgroundMusic } from '../audio/MusicManager';
+import { isMusicMuted } from '../audio/MusicManager';
 import { createButton } from '../ui/createButton';
 
 const WORLD_HEIGHT = 900;
@@ -38,12 +38,12 @@ const MIN_SPAWN_DISTANCE = 140;
 const TOKEN_APEX_CLEARANCE = 8;
 const BOSS_PROJECTILE_MIN_INTERVAL_MS = 400;
 const BOSS_PROJECTILE_MAX_INTERVAL_MS = 1000;
+const BOSS_RAPID_SHOT_INTERVAL_MS = 150;
 const BOSS_PROJECTILE_SPEED_MULTIPLIER = 2.5;
 const BOSS_PARRY_WINDOW_MULTIPLIER = 0.5;
 const BOSS_DARKEN_DURATION_MS = 2000;
 const BACKGROUND_NORMAL_ALPHA = 0.72;
 const BOSS_BACKGROUND_ALPHA = 0.15;
-const DEBUG_START_BOSS_ENCOUNTER = true;
 // Long enough for the full A1->G2 climb (see rankConfig.ts) plus spawn-ahead/cleanup buffer.
 const WORLD_WIDTH = PLAYER_START_X + FINAL_DISTANCE + 2000;
 
@@ -58,6 +58,9 @@ export class SurviveScene extends Phaser.Scene {
   private tokenSpawnAccumulator = 0;
   private isEnding = false;
   private officeBackgrounds: Phaser.GameObjects.Image[] = [];
+  private gameplayMusic?: Phaser.Sound.BaseSound;
+  private gameplaySfx?: Phaser.Sound.BaseSound;
+  private bossMusic?: Phaser.Sound.BaseSound;
 
   // Boss encounter state
   private boss: Boss | null = null;
@@ -65,6 +68,7 @@ export class SurviveScene extends Phaser.Scene {
   private nextRankForBoss = -1;
   private bossProjectileSpawnAccumulator = 0;
   private nextBossProjectileDelayMs = 0;
+  private rapidShotsRemaining = 0;
   private bossWasAttacking = false;
   private bossDefeatSequenceActive = false;
 
@@ -88,6 +92,7 @@ export class SurviveScene extends Phaser.Scene {
     this.boss = null;
     this.bossProjectileSpawnAccumulator = 0;
     this.nextBossProjectileDelayMs = 0;
+    this.rapidShotsRemaining = 0;
     this.bossWasAttacking = false;
     this.bossDefeatSequenceActive = false;
     this.healthBarBackground = null;
@@ -137,13 +142,9 @@ export class SurviveScene extends Phaser.Scene {
 
     this.scene.launch('HUD');
 
-    startBackgroundMusic();
+    this.startGameplayMusic();
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.stopAllMusic, this);
     this.emitFullState();
-
-    if (DEBUG_START_BOSS_ENCOUNTER) {
-      this.nextRankForBoss = Math.min(this.state.rankIndex + 1, FINAL_RANK_INDEX);
-      this.startBossEncounter();
-    }
   }
 
   update(_time: number, delta: number): void {
@@ -304,8 +305,6 @@ export class SurviveScene extends Phaser.Scene {
 
     if (this.player.isParrying) {
       obstacle.resolveParried();
-      playSfx('parry');
-      this.sound.play('sfx-punch');
       this.burst(obstacle.x, obstacle.y, 0xffe066);
       this.awardToken();
     } else {
@@ -320,18 +319,23 @@ export class SurviveScene extends Phaser.Scene {
     const { x, y } = token;
 
     token.collect(() => {
-      const count = this.awardToken();
-      if (count >= this.state.rank.tokensToPromote && !this.state.isRetired) {
-        this.promoteTo(this.state.rankIndex + 1);
-      }
+      this.awardToken();
     });
     this.burst(x, y, 0xffd23f);
   }
 
   private awardToken(): number {
+    if (this.isEnding || this.inBossEncounter || this.state.isRetired) return this.state.tokens;
+
     playSfx('collect');
     const count = this.state.addToken();
-    eventBus.emit(GameEvents.TokensChanged, { count, needed: this.state.rank.tokensToPromote });
+    const needed = this.state.rank.tokensToPromote;
+    eventBus.emit(GameEvents.TokensChanged, { count, needed });
+
+    if (count >= needed) {
+      this.promoteTo(this.state.rankIndex + 1);
+    }
+
     return count;
   }
 
@@ -445,6 +449,14 @@ export class SurviveScene extends Phaser.Scene {
   private startBossEncounter(): void {
     this.inBossEncounter = true;
     this.bossDefeatSequenceActive = false;
+    this.gameplayMusic?.stop();
+    if (!this.bossMusic) {
+      this.bossMusic = this.sound.add('boss', {
+        loop: true,
+        volume: isMusicMuted() ? 0 : 0.5,
+      });
+    }
+    this.bossMusic.play();
     this.player.setParryWindowSeconds(this.state.rank.parryWindowSeconds * BOSS_PARRY_WINDOW_MULTIPLIER);
 
     // Pause all spawning
@@ -527,14 +539,15 @@ export class SurviveScene extends Phaser.Scene {
       if (!this.bossWasAttacking) {
         this.bossProjectileSpawnAccumulator = 0;
         this.spawnBossProjectile();
-        this.nextBossProjectileDelayMs = Phaser.Math.Between(
-          BOSS_PROJECTILE_MIN_INTERVAL_MS,
-          BOSS_PROJECTILE_MAX_INTERVAL_MS
-        );
+        this.rapidShotsRemaining = this.boss.getAttackPattern() === 'rapid' ? 2 : 0;
+        this.nextBossProjectileDelayMs = this.rapidShotsRemaining > 0
+          ? BOSS_RAPID_SHOT_INTERVAL_MS
+          : Phaser.Math.Between(BOSS_PROJECTILE_MIN_INTERVAL_MS, BOSS_PROJECTILE_MAX_INTERVAL_MS);
       }
       this.updateBossAttacks(delta);
     } else {
       this.bossProjectileSpawnAccumulator = 0;
+      this.rapidShotsRemaining = 0;
     }
     this.bossWasAttacking = isAttacking;
   }
@@ -543,6 +556,15 @@ export class SurviveScene extends Phaser.Scene {
     if (!this.boss) return;
 
     this.bossProjectileSpawnAccumulator += delta;
+
+    if (this.rapidShotsRemaining > 0) {
+      if (this.bossProjectileSpawnAccumulator >= BOSS_RAPID_SHOT_INTERVAL_MS) {
+        this.bossProjectileSpawnAccumulator -= BOSS_RAPID_SHOT_INTERVAL_MS;
+        this.spawnBossProjectile();
+        this.rapidShotsRemaining -= 1;
+      }
+      return;
+    }
 
     if (this.bossProjectileSpawnAccumulator >= this.nextBossProjectileDelayMs) {
       this.bossProjectileSpawnAccumulator -= this.nextBossProjectileDelayMs;
@@ -560,45 +582,18 @@ export class SurviveScene extends Phaser.Scene {
     const config = this.boss.getConfig();
     const projectileSpeed = config.projectileSpeed * BOSS_PROJECTILE_SPEED_MULTIPLIER;
 
-    if (config.attackPattern === 'single') {
-      // Single shot toward player from boss torso
-      const projectile = new Projectile(
-        this,
-        this.boss.x,
-        this.boss.y - 20,
-        'obstacle-corporate-bs',
-        this.player.x,
-        this.player.y,
-        projectileSpeed,
-        0,
-        48
-      );
-      this.bossProjectiles.add(projectile);
-    } else if (config.attackPattern === 'spread') {
-      // Spread shot (3 projectiles at different angles)
-      const angles = [-20, 0, 20];
-      for (const angleOffset of angles) {
-        const direction = Phaser.Math.Angle.Between(this.boss.x, this.boss.y, this.player.x, this.player.y);
-        const adjustedAngle = direction + Phaser.Math.DegToRad(angleOffset);
-        const velocity = new Phaser.Math.Vector2(
-          Math.cos(adjustedAngle) * projectileSpeed,
-          Math.sin(adjustedAngle) * projectileSpeed
-        );
-
-        const projectile = new Projectile(
-          this,
-          this.boss.x,
-          this.boss.y - 20,
-          'obstacle-corporate-bs',
-          this.boss.x + velocity.x * 2,
-          this.boss.y + velocity.y * 2,
-          projectileSpeed,
-          0,
-          48
-        );
-        this.bossProjectiles.add(projectile);
-      }
-    }
+    const projectile = new Projectile(
+      this,
+      this.boss.x,
+      this.boss.y - 20,
+      'obstacle-corporate-bs',
+      this.player.x,
+      this.player.y,
+      projectileSpeed,
+      0,
+      48
+    );
+    this.bossProjectiles.add(projectile);
   }
 
   private handleBossProjectileOverlap(_playerObj: unknown, projectileObj: unknown): void {
@@ -607,8 +602,7 @@ export class SurviveScene extends Phaser.Scene {
 
     if (this.player.isParrying) {
       projectile.resolveParried();
-      playSfx('parry');
-      this.sound.play('sfx-punch');
+      playSfx('collect');
       this.burst(projectile.x, projectile.y, 0xffe066);
       
       // Damage boss on successful parry
@@ -712,6 +706,7 @@ export class SurviveScene extends Phaser.Scene {
       // Reset hit counter to full (0 hits = 5 lives)
       this.state.rankIndex = this.nextRankForBoss;
       this.state.resetHits();
+      this.state.resetTokens();
       eventBus.emit(GameEvents.HitsChanged, this.state.hits);
 
       // Apply promotion
@@ -738,6 +733,8 @@ export class SurviveScene extends Phaser.Scene {
   private resumeNormalGameplay(): void {
     // Clear all boss projectiles
     this.clearBossProjectiles();
+    this.bossMusic?.stop();
+    this.startGameplayMusic();
 
     const camera = this.cameras.main;
     const offsetX = this.player.x - camera.scrollX - camera.width / 2;
@@ -749,6 +746,36 @@ export class SurviveScene extends Phaser.Scene {
     this.obstacleSpawnInterval = 0;
     this.obstacleSpawnAccumulator = 0;
     this.tokenSpawnAccumulator = 0;
+  }
+
+  private startGameplayMusic(): void {
+    if (!this.gameplayMusic) {
+      this.gameplayMusic = this.sound.add('game-music', {
+        loop: true,
+        volume: isMusicMuted() ? 0 : 0.5,
+      });
+    }
+    if (!this.gameplayMusic.isPlaying) {
+      this.gameplayMusic.play();
+    }
+    if (!this.gameplaySfx) {
+      this.gameplaySfx = this.sound.add('game-sfx', {
+        loop: true,
+        volume: isMusicMuted() ? 0 : 1,
+      });
+    }
+    if (!this.gameplaySfx.isPlaying) {
+      this.gameplaySfx.play();
+    }
+  }
+
+  private stopAllMusic(): void {
+    this.gameplayMusic?.destroy();
+    this.gameplayMusic = undefined;
+    this.gameplaySfx?.destroy();
+    this.gameplaySfx = undefined;
+    this.bossMusic?.destroy();
+    this.bossMusic = undefined;
   }
 
   private dimBossBackground(): void {
@@ -793,15 +820,15 @@ export class SurviveScene extends Phaser.Scene {
     );
     this.healthBarContainer.add(this.healthBarBackground);
 
-    // Fill (red, will scale from right to left)
+    // Fill (red, depletes from the right while keeping the left edge fixed)
     this.healthBarFill = this.add.rectangle(
-      HEALTH_BAR_WIDTH / 2, // Right edge at +50 (center + half-width)
+      -HEALTH_BAR_WIDTH / 2, // Left edge of the bar
       HEALTH_BAR_HEIGHT + LABEL_GAP,
       HEALTH_BAR_WIDTH,
       HEALTH_BAR_HEIGHT,
       0xff4444
     );
-    this.healthBarFill.setOrigin(1, 0.5); // Origin at right edge so width scaling depletes from right
+    this.healthBarFill.setOrigin(0, 0.5);
     this.healthBarContainer.add(this.healthBarFill);
 
     // Label: "Clipboard of Directors" - scale font to fit 100px width
@@ -835,7 +862,7 @@ export class SurviveScene extends Phaser.Scene {
     const HEALTH_BAR_WIDTH = 500;
     const newWidth = HEALTH_BAR_WIDTH * healthRatio;
 
-    // Update fill width (depletes from right to left by scaling from left origin)
+    // Update fill width while the left edge remains anchored.
     this.healthBarFill.setDisplaySize(newWidth, 16);
 
     // Optional: Add pulse/flash effect on damage

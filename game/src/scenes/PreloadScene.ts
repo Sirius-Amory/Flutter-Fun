@@ -48,11 +48,19 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('icon-mute', 'src/assets/main-menu/mute.png');
     this.load.image('icon-unmute', 'src/assets/main-menu/unmute.png');
 
+    // HUD icons
+    this.load.image('hud-icon-age', 'src/assets/hud/icons/age.png');
+    this.load.image('hud-icon-rank', 'src/assets/hud/icons/rank.png');
+    this.load.image('hud-icon-highlight', 'src/assets/hud/icons/highlight.png');
+    this.load.image('hud-icon-setback', 'src/assets/hud/icons/setback.png');
+
     // Main menu sounds
-    this.load.audio('main-menu-sound', 'src/assets/sounds/main-menu.mp3');
+    this.load.audio('menu', 'src/assets/sounds/menu.mp3');
+    this.load.audio('game-music', 'src/assets/sounds/game-music.mp3');
+    this.load.audio('game-sfx', 'src/assets/sounds/game-sfx.mp3');
+    this.load.audio('boss', 'src/assets/sounds/boss.mp3');
     this.load.audio('whiteboard-sound', 'src/assets/sounds/whiteboard-sound.mp3');
     this.load.audio('sfx-swish', 'src/assets/sounds/swish.mp3');
-    this.load.audio('sfx-punch', 'src/assets/sounds/punch.mp3');
 
     // Boss encounter poses (128x128, facing left, transparent backgrounds)
     this.load.image('boss-idle', 'src/assets/boss/PNG/Poses/idle.png');

@@ -66,7 +66,7 @@ export class GameState {
   }
 
   addToken(): number {
-    const next = this.tokens + 1;
+    const next = Math.min(this.tokens + 1, this.rank.tokensToPromote);
     this.store.set(KEYS.tokens, next);
     return next;
   }
