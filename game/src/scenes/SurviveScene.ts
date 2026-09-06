@@ -44,8 +44,9 @@ const BOSS_PARRY_WINDOW_MULTIPLIER = 0.5;
 const BOSS_DARKEN_DURATION_MS = 2000;
 const BACKGROUND_NORMAL_ALPHA = 0.72;
 const BOSS_BACKGROUND_ALPHA = 0.15;
-// Long enough for the full A1->G2 climb (see rankConfig.ts) plus spawn-ahead/cleanup buffer.
-const WORLD_WIDTH = PLAYER_START_X + FINAL_DISTANCE + 2000;
+const INITIAL_WORLD_BUFFER = 2000;
+const WORLD_EXTENSION_THRESHOLD = 3000;
+const WORLD_EXTENSION_LENGTH = 10000;
 
 export class SurviveScene extends Phaser.Scene {
   private player!: Player;
@@ -61,6 +62,8 @@ export class SurviveScene extends Phaser.Scene {
   private gameplayMusic?: Phaser.Sound.BaseSound;
   private gameplaySfx?: Phaser.Sound.BaseSound;
   private bossMusic?: Phaser.Sound.BaseSound;
+  private worldWidth = 0;
+  private groundCollider!: Phaser.GameObjects.Rectangle;
 
   // Boss encounter state
   private boss: Boss | null = null;
@@ -106,15 +109,16 @@ export class SurviveScene extends Phaser.Scene {
     this.state = new GameState(this.registry);
     this.state.reset();
 
-    this.physics.world.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
-    this.cameras.main.setBounds(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+    this.worldWidth = PLAYER_START_X + FINAL_DISTANCE + INITIAL_WORLD_BUFFER;
+    this.physics.world.setBounds(0, 0, this.worldWidth, WORLD_HEIGHT);
+    this.cameras.main.setBounds(0, 0, this.worldWidth, WORLD_HEIGHT);
     this.cameras.main.setBackgroundColor(0x000000);
     this.buildOfficeBackground();
 
     const ground = this.physics.add.staticGroup();
-    const groundCollider = this.add.rectangle(WORLD_WIDTH / 2, GROUND_Y, WORLD_WIDTH, 32, 0xffffff, 0);
-    this.physics.add.existing(groundCollider, true);
-    ground.add(groundCollider);
+    this.groundCollider = this.add.rectangle(this.worldWidth / 2, GROUND_Y, this.worldWidth, 32, 0xffffff, 0);
+    this.physics.add.existing(this.groundCollider, true);
+    ground.add(this.groundCollider);
 
     this.player = new Player(
       this,
@@ -151,6 +155,7 @@ export class SurviveScene extends Phaser.Scene {
     if (this.isEnding) return;
 
     this.player.update(delta);
+    this.extendWorldIfNeeded();
 
     if (this.inBossEncounter && this.boss) {
       this.updateBossEncounter(delta);
@@ -167,6 +172,17 @@ export class SurviveScene extends Phaser.Scene {
   }
 
   // Distance remains the player's score; promotion is earned by collecting the rank's tokens.
+  private extendWorldIfNeeded(): void {
+    if (this.player.x < this.worldWidth - WORLD_EXTENSION_THRESHOLD) return;
+
+    this.worldWidth += WORLD_EXTENSION_LENGTH;
+    this.physics.world.setBounds(0, 0, this.worldWidth, WORLD_HEIGHT);
+    this.cameras.main.setBounds(0, 0, this.worldWidth, WORLD_HEIGHT);
+    this.groundCollider.setPosition(this.worldWidth / 2, GROUND_Y);
+    this.groundCollider.setSize(this.worldWidth, 32);
+    (this.groundCollider.body as Phaser.Physics.Arcade.StaticBody).updateFromGameObject();
+  }
+
   private updateProgress(): void {
     const traveled = Math.max(0, this.player.x - PLAYER_START_X);
     this.state.advanceDistance(traveled);
@@ -304,6 +320,7 @@ export class SurviveScene extends Phaser.Scene {
     if (obstacle.isResolved || this.isEnding) return;
 
     if (this.player.isParrying) {
+      this.player.confirmParrySuccess();
       obstacle.resolveParried();
       this.burst(obstacle.x, obstacle.y, 0xffe066);
     } else {

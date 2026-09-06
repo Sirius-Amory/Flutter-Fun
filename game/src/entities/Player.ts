@@ -3,6 +3,7 @@ import { getCharacterById, type CharacterDef } from '../data/characters';
 import { PLAYER_JUMP_VELOCITY, PLAYER_MAX_JUMPS, PLAYER_MOVE_SPEED } from '../data/movementTuning';
 
 const PARRY_KEY_CODES = ['X'];
+const PARRY_RECOVERY_SECONDS = 0.3;
 // Display height in px that every character (regardless of its source art's native resolution)
 // is scaled to, so swapping character packs never requires re-tuning gameplay feel.
 const PLAYER_TARGET_HEIGHT = 168;
@@ -46,6 +47,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private rankScale = 1;
   private parryWindowSeconds: number;
   private parryTimeRemaining = 0;
+  private parryRecoveryTimeRemaining = 0;
+  private parrySucceeded = false;
   private hasMoved = false;
   private movementDirection = 0;
   private readonly standingBodyWidth: number;
@@ -116,10 +119,18 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.jumpsRemaining -= 1;
     }
 
-    if (parryJustPressed) {
+    if (this.parryRecoveryTimeRemaining > 0) {
+      this.parryRecoveryTimeRemaining = Math.max(0, this.parryRecoveryTimeRemaining - deltaMs / 1000);
+    }
+
+    if (parryJustPressed && this.parryTimeRemaining <= 0 && this.parryRecoveryTimeRemaining <= 0) {
       this.parryTimeRemaining = this.parryWindowSeconds;
+      this.parrySucceeded = false;
     } else if (this.parryTimeRemaining > 0) {
       this.parryTimeRemaining = Math.max(0, this.parryTimeRemaining - deltaMs / 1000);
+      if (this.parryTimeRemaining === 0 && !this.parrySucceeded) {
+        this.parryRecoveryTimeRemaining = PARRY_RECOVERY_SECONDS;
+      }
     }
 
     if (this.isCrouching !== crouching) {
@@ -150,6 +161,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
   get isParrying(): boolean {
     return this.parryTimeRemaining > 0;
+  }
+
+  confirmParrySuccess(): void {
+    if (!this.isParrying) return;
+    this.parrySucceeded = true;
+    this.parryRecoveryTimeRemaining = 0;
   }
 
   get startedMoving(): boolean {
