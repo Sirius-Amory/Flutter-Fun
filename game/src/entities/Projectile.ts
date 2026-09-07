@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { COLLECTIBLE_RENDER_SCALE } from './Collectible';
+
+const PROJECTILE_RENDER_SCALE = 2;
 
 export class Projectile extends Phaser.Physics.Arcade.Sprite {
   private resolved = false;
@@ -15,7 +16,7 @@ export class Projectile extends Phaser.Physics.Arcade.Sprite {
     const body = this.body as Phaser.Physics.Arcade.Body;
     body.setAllowGravity(false);
     const direction = new Phaser.Math.Vector2(targetX - x, targetY - y).normalize();
-    this.setDisplaySize(displaySize * COLLECTIBLE_RENDER_SCALE * 1.5, displaySize * COLLECTIBLE_RENDER_SCALE * 1.5);
+    this.setDisplaySize(displaySize * PROJECTILE_RENDER_SCALE * 1.5, displaySize * PROJECTILE_RENDER_SCALE * 1.5);
     this.setSize(this.width * 0.78, this.height * 0.78);
     this.setOffset((this.width - body.width) / 2, (this.height - body.height) / 2);
     this.velocity.set(direction.x * speed, direction.y * speed);

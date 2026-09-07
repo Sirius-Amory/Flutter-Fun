@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { TokenMotion, type TokenMotionConfig } from './TokenMotion';
 
 export const PROMOTION_TOKEN_TEXTURE_KEY = 'token-promotion';
-export const COLLECTIBLE_RENDER_SCALE = 2;
+export const COLLECTIBLE_RENDER_SCALE = 2.4;
 
 export class Collectible extends Phaser.Physics.Arcade.Sprite {
   readonly isPromotion: boolean;
