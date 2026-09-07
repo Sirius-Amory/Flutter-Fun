@@ -48,7 +48,19 @@ const BOSS_BACKGROUND_ALPHA = 0.15;
 const INITIAL_WORLD_BUFFER = 2000;
 const WORLD_EXTENSION_THRESHOLD = 3000;
 const WORLD_EXTENSION_LENGTH = 10000;
-const GAMEPLAY_CUE_NAMES = ['collect', 'ouch_female', 'ouch_male', 'parry', 'shoot', 'victory'] as const;
+const GAMEPLAY_CUE_NAMES = [
+  'collect',
+  'ouch_female',
+  'ouch_male',
+  'parry',
+  'shoot',
+  'victory',
+  'villain-1',
+  'villain-2',
+  'villain-3',
+  'villain-4',
+  'villain-defeated',
+] as const;
 type GameplayCueName = (typeof GAMEPLAY_CUE_NAMES)[number];
 const CUE_POOL_SIZE = 4;
 
@@ -80,6 +92,8 @@ export class SurviveScene extends Phaser.Scene {
   private nextBossProjectileDelayMs = 0;
   private rapidShotsRemaining = 0;
   private bossWasAttacking = false;
+  private bossWasTelegraphing = false;
+  private lastBossTelegraphCue = -1;
   private bossDefeatSequenceActive = false;
 
   // Boss health bar UI
@@ -105,6 +119,8 @@ export class SurviveScene extends Phaser.Scene {
     this.nextBossProjectileDelayMs = 0;
     this.rapidShotsRemaining = 0;
     this.bossWasAttacking = false;
+    this.bossWasTelegraphing = false;
+    this.lastBossTelegraphCue = -1;
     this.bossDefeatSequenceActive = false;
     this.healthBarBackground = null;
     this.healthBarFill = null;
@@ -547,6 +563,8 @@ export class SurviveScene extends Phaser.Scene {
     // Boss difficulty is based on the rank we're promoting TO
     const targetRank = RANKS[Math.min(this.nextRankForBoss, FINAL_RANK_INDEX)];
     this.boss = new Boss(this, bossSpawnX, bossY, this.nextRankForBoss, targetRank.playerScale);
+    this.bossWasTelegraphing = false;
+    this.lastBossTelegraphCue = -1;
     this.dimBossBackground();
 
     // Walk boss in from right (slowly)
@@ -570,6 +588,10 @@ export class SurviveScene extends Phaser.Scene {
     if (!this.boss) return;
 
     this.boss.update(delta);
+    const isTelegraphing = this.boss.getState() === 'telegraph';
+    if (isTelegraphing && !this.bossWasTelegraphing) {
+      this.playBossTelegraphCue();
+    }
     const isAttacking = this.boss.getState() === 'attack';
     if (isAttacking) {
       if (!this.bossWasAttacking) {
@@ -586,6 +608,7 @@ export class SurviveScene extends Phaser.Scene {
       this.rapidShotsRemaining = 0;
     }
     this.bossWasAttacking = isAttacking;
+    this.bossWasTelegraphing = isTelegraphing;
   }
 
   private updateBossAttacks(delta: number): void {
@@ -677,6 +700,7 @@ export class SurviveScene extends Phaser.Scene {
     this.time.delayedCall(1000, () => {
       if (!this.boss) return;
 
+      this.playCue('villain-defeated');
       this.boss.setDefeatTexture('boss-fall2');
       this.time.delayedCall(1000, () => {
         if (!this.boss) return;
@@ -842,6 +866,15 @@ export class SurviveScene extends Phaser.Scene {
     const position = this.cuePoolPositions.get(name) ?? 0;
     pool[position].play();
     this.cuePoolPositions.set(name, (position + 1) % pool.length);
+  }
+
+  private playBossTelegraphCue(): void {
+    let cueIndex = Phaser.Math.Between(0, 3);
+    if (cueIndex === this.lastBossTelegraphCue) {
+      cueIndex = (cueIndex + Phaser.Math.Between(1, 3)) % 4;
+    }
+    this.lastBossTelegraphCue = cueIndex;
+    this.playCue(`villain-${cueIndex + 1}` as GameplayCueName);
   }
 
   private dimBossBackground(): void {

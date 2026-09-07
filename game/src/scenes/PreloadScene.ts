@@ -9,6 +9,11 @@ import ouchMaleSfx from '../assets/sounds/ouch_male.mp3';
 import parrySfx from '../assets/sounds/parry.mp3';
 import shootSfx from '../assets/sounds/shoot.mp3';
 import victorySfx from '../assets/sounds/victory.mp3';
+import villain1Sfx from '../assets/sounds/villain-1.mp3';
+import villain2Sfx from '../assets/sounds/villain-2.mp3';
+import villain3Sfx from '../assets/sounds/villain-3.mp3';
+import villain4Sfx from '../assets/sounds/villain-4.mp3';
+import villainDefeatedSfx from '../assets/sounds/villain-defeated.mp3';
 import {
   BACKGROUND_ASSETS,
   OBSTACLE_ASSETS,
@@ -76,6 +81,11 @@ export class PreloadScene extends Phaser.Scene {
     this.load.audio('parry', parrySfx);
     this.load.audio('shoot', shootSfx);
     this.load.audio('victory', victorySfx);
+    this.load.audio('villain-1', villain1Sfx);
+    this.load.audio('villain-2', villain2Sfx);
+    this.load.audio('villain-3', villain3Sfx);
+    this.load.audio('villain-4', villain4Sfx);
+    this.load.audio('villain-defeated', villainDefeatedSfx);
 
     // Boss encounter poses (128x128, facing left, transparent backgrounds)
     this.load.image('boss-idle', 'assets/boss/PNG/Poses/idle.png');
