@@ -32,6 +32,10 @@ export class MainMenuScene extends Phaser.Scene {
   create(): void {
     const { width, height } = this.scale;
 
+    this.scene.stop('Survive');
+    this.scene.stop('HUD');
+    this.scene.stop('Pause');
+
     // Resume audio context if available (required for browser autoplay policies)
     const soundManager = this.sound as any;
     if (soundManager.context && soundManager.context.state === 'suspended') {

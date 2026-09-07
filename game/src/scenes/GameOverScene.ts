@@ -38,6 +38,13 @@ export class GameOverScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     createButton(this, width / 2, height / 2 + 40, 'Retry', () => this.scene.start('Survive'));
-    createButton(this, width / 2, height / 2 + 90, 'Main Menu', () => this.scene.start('MainMenu'));
+    createButton(this, width / 2, height / 2 + 90, 'Main Menu', () => {
+      const sceneManager = this.scene.manager;
+      sceneManager.stop('GameOver');
+      sceneManager.stop('HUD');
+      sceneManager.stop('Survive');
+      sceneManager.start('MainMenu');
+      sceneManager.bringToTop('MainMenu');
+    });
   }
 }

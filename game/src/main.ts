@@ -7,6 +7,7 @@ import { HUDScene } from './scenes/HUDScene';
 import { GameOverScene } from './scenes/GameOverScene';
 import { VictoryScene } from './scenes/VictoryScene';
 import { LeaderboardScene } from './scenes/LeaderboardScene';
+import { PauseScene } from './scenes/PauseScene';
 import { WORLD_GRAVITY_Y } from './data/movementTuning';
 
 const config: Phaser.Types.Core.GameConfig = {
@@ -32,7 +33,7 @@ const config: Phaser.Types.Core.GameConfig = {
       debug: false,
     },
   },
-  scene: [BootScene, PreloadScene, MainMenuScene, SurviveScene, HUDScene, GameOverScene, VictoryScene, LeaderboardScene],
+  scene: [BootScene, PreloadScene, MainMenuScene, SurviveScene, HUDScene, PauseScene, GameOverScene, VictoryScene, LeaderboardScene],
 };
 
 new Phaser.Game(config);

@@ -152,6 +152,8 @@ export class SurviveScene extends Phaser.Scene {
 
     this.scene.launch('HUD');
 
+    this.input.keyboard?.on('keydown-ESC', this.openPauseMenu, this);
+
     this.startGameplayMusic();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.stopAllMusic, this);
     this.emitFullState();
@@ -789,6 +791,13 @@ export class SurviveScene extends Phaser.Scene {
     if (!this.gameplaySfx.isPlaying) {
       this.gameplaySfx.play();
     }
+  }
+
+  private openPauseMenu(): void {
+    if (this.isEnding || this.scene.isActive('Pause')) return;
+
+    this.scene.pause();
+    this.scene.launch('Pause');
   }
 
   private stopAllMusic(): void {
