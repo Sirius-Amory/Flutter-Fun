@@ -23,6 +23,7 @@ export class MainMenuScene extends Phaser.Scene {
   private leaderboardIcon!: Phaser.GameObjects.Image;
   private controlsIcon!: Phaser.GameObjects.Image;
   private musicToggleIcon!: Phaser.GameObjects.Image;
+  private controlsDimmer?: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super('MainMenu');
@@ -101,7 +102,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Create proj2 image (whiteboard) with fixed scale to preserve aspect ratio
     this.proj2Image = this.add.image(0, height / 2, 'mainmenu-proj2');
-    this.proj2Image.setScale(0.47); // 2/3 of original 0.7 scale
+    this.proj2Image.setScale(0.94);
 
     // Position "just out of frame" — based on the image's own (scaled) width,
     // not the full canvas width, so it's just past the left edge rather than
@@ -111,14 +112,17 @@ export class MainMenuScene extends Phaser.Scene {
     this.proj2Image.x = this.proj2OffscreenX;
     this.proj2Image.setDepth(35);
 
+    this.controlsDimmer = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0);
+    this.controlsDimmer.setScrollFactor(0).setDepth(25);
+
     this.proj2TargetX = this.proj2OffscreenX;
     this.proj2Speed = 0;
 
-    // Toggle the whiteboard on click; ignore clicks while it is moving.
-    this.controlsIcon.on('pointerdown', () => {
-      if (this.proj2IsAnimating) {
-        return;
-      }
+    // The controls icon opens the whiteboard; any click closes it once it is visible.
+    this.input.on('pointerdown', (_pointer: Phaser.Input.Pointer, currentlyOver: Phaser.GameObjects.GameObject[]) => {
+      if (this.proj2IsAnimating) return;
+      const clickedControls = currentlyOver.includes(this.controlsIcon);
+      if (!this.proj2IsVisible && !clickedControls) return;
 
       // Ensure audio context is not suspended
       const soundManager = this.sound as any;
@@ -127,9 +131,15 @@ export class MainMenuScene extends Phaser.Scene {
       }
 
       this.proj2IsVisible = !this.proj2IsVisible;
-      this.proj2TargetX = this.proj2IsVisible ? width / 6 : this.proj2OffscreenX;
+      this.proj2TargetX = this.proj2IsVisible ? width / 2 : this.proj2OffscreenX;
       this.proj2Speed = (this.proj2TargetX - (this.proj2Image?.x ?? this.proj2OffscreenX)) / this.proj2AnimationDuration;
       this.proj2IsAnimating = true;
+      this.tweens.add({
+        targets: this.controlsDimmer,
+        fillAlpha: this.proj2IsVisible ? 0.9 : 0,
+        duration: this.proj2AnimationDuration,
+        ease: 'Linear',
+      });
 
       // Play whiteboard sound
       try {
@@ -156,6 +166,7 @@ export class MainMenuScene extends Phaser.Scene {
         this.proj2Image.x = this.proj2TargetX;
         this.proj2Speed = 0;
         this.proj2IsAnimating = false;
+        if (this.controlsDimmer) this.controlsDimmer.setFillStyle(0x000000, this.proj2IsVisible ? 0.9 : 0);
       } else {
         this.proj2Image.x = newX;
       }
@@ -219,6 +230,8 @@ export class MainMenuScene extends Phaser.Scene {
     const { width, height } = this.scale;
     const iconWidth = width * ICON_WIDTH_PCT;
     const iconEdge = width * ICON_EDGE_PCT;
+
+    this.controlsDimmer?.setPosition(width / 2, height / 2).setSize(width, height);
 
     for (const icon of [this.leaderboardIcon, this.controlsIcon, this.musicToggleIcon]) {
       icon.setDisplaySize(iconWidth, (icon.height / icon.width) * iconWidth);

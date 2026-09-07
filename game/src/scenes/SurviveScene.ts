@@ -29,7 +29,7 @@ const GROUND_Y = 820;
 const GROUND_TOP_Y = GROUND_Y - 16;
 const PLAYER_START_X = 320;
 const PLAYER_START_Y = 560;
-const PLAYER_CAMERA_SCREEN_RATIO = 1 / 3;
+const PLAYER_CAMERA_SCREEN_RATIO = 1 / 5;
 const SPAWN_MARGIN_X = 120;
 const CLEANUP_MARGIN_X = 120;
 const BACKGROUND_ASPECT_RATIO = 3168 / 1344;
@@ -127,8 +127,14 @@ export class SurviveScene extends Phaser.Scene {
       this.state.rank.parryWindowSeconds,
       this.state.characterId
     );
-    this.cameras.main.setFollowOffset(-this.scale.width * (0.5 - PLAYER_CAMERA_SCREEN_RATIO), -140);
-    this.cameras.main.startFollow(this.player, true, 1, 1);
+    this.cameras.main.startFollow(
+      this.player,
+      true,
+      1,
+      1,
+      -this.scale.width * (0.5 - PLAYER_CAMERA_SCREEN_RATIO),
+      -140
+    );
     const quitButton = createButton(this, this.scale.width - 70, 72, 'Quit', () => {
       this.scene.stop('HUD');
       this.scene.start('MainMenu');
@@ -602,7 +608,7 @@ export class SurviveScene extends Phaser.Scene {
       this,
       this.boss.x,
       this.boss.y - 20,
-      'obstacle-corporate-bs',
+      Phaser.Utils.Array.GetRandom(OBSTACLE_TEXTURE_KEYS),
       this.player.x,
       this.player.y,
       projectileSpeed,

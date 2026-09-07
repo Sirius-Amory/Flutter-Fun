@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { generateTextures } from '../textures/generateTextures';
 import { CHARACTERS } from '../data/characters';
+import proj2 from '../assets/main-menu/proj2.png';
 import {
   BACKGROUND_ASSETS,
   OBSTACLE_ASSETS,
@@ -44,7 +45,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('mainmenu-controls', 'assets/main-menu/mainmenu_controls.png');
     this.load.image('mainmenu-leaderboard', 'assets/main-menu/mainmenu_leaderboard.png');
     this.load.image('mainmenu-start', 'assets/main-menu/mainmenu_start.png');
-    this.load.image('mainmenu-proj2', 'assets/main-menu/proj2.png');
+    this.load.image('mainmenu-proj2', proj2);
     this.load.image('icon-mute', 'assets/main-menu/mute.png');
     this.load.image('icon-unmute', 'assets/main-menu/unmute.png');
 

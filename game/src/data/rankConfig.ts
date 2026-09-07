@@ -21,7 +21,7 @@ export interface RankConfig {
   tokensToPromote: number;
 }
 
-export const OBSTACLE_SPEED_MULTIPLIER = 4;
+export const OBSTACLE_SPEED_MULTIPLIER = 6;
 export const SPAWN_INTERVAL_MULTIPLIER = 2;
 export const TOKEN_MOTION_SPEED_MULTIPLIER = 2.5;
 
