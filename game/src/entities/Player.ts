@@ -1,12 +1,12 @@
 import Phaser from 'phaser';
 import { getCharacterById, type CharacterDef } from '../data/characters';
-import { PLAYER_JUMP_VELOCITY, PLAYER_MAX_JUMPS, PLAYER_MOVE_SPEED } from '../data/movementTuning';
+import { PLAYER_HEIGHT, PLAYER_JUMP_VELOCITY, PLAYER_MAX_JUMPS, PLAYER_MOVE_SPEED } from '../data/movementTuning';
 
 const PARRY_KEY_CODES = ['X'];
 const PARRY_RECOVERY_SECONDS = 0.18;
 // Display height in px that every character (regardless of its source art's native resolution)
 // is scaled to, so swapping character packs never requires re-tuning gameplay feel.
-const PLAYER_TARGET_HEIGHT = 168;
+const PLAYER_TARGET_HEIGHT = PLAYER_HEIGHT;
 
 type WasdKeys = {
   W: Phaser.Input.Keyboard.Key;

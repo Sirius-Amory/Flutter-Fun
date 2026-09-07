@@ -15,7 +15,7 @@ export class Collectible extends Phaser.Physics.Arcade.Sprite {
     (this.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
     this.isPromotion = isPromotion;
     const size = (isPromotion ? displaySize * 1.25 : displaySize) * COLLECTIBLE_RENDER_SCALE;
-    this.setDisplaySize(size, size);
+    this.setScale(size / Math.max(this.width, this.height));
     this.setSize(this.width, this.height);
     this.setOffset(0, 0);
     this.motion = new TokenMotion(this, x, y, motionConfig);

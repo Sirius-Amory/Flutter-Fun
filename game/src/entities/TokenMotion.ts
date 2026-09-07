@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 
-export type TokenMotionPattern = 'bobbing' | 'circular' | 'figure8';
+export type TokenMotionPattern = 'static' | 'drifting' | 'bobbing' | 'circular' | 'figure8';
 
 export interface TokenMotionConfig {
   pattern: TokenMotionPattern;
@@ -19,12 +19,16 @@ export class TokenMotion {
   ) {}
 
   update(deltaMs: number): void {
+    if (this.config.pattern === 'static') return;
+
     this.elapsed += deltaMs / 1000;
     const phase = this.elapsed * this.config.speed;
     let x = this.centerX;
     let y = this.centerY;
 
-    if (this.config.pattern === 'bobbing') {
+    if (this.config.pattern === 'drifting') {
+      x -= phase;
+    } else if (this.config.pattern === 'bobbing') {
       y += Math.sin(phase) * this.config.amplitude;
     } else if (this.config.pattern === 'circular') {
       x += Math.cos(phase) * this.config.amplitude;

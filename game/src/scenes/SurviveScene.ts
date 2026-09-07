@@ -10,14 +10,13 @@ import {
   RANKS,
   type RankConfig,
 } from '../data/rankConfig';
-import { DOUBLE_JUMP_APEX_HEIGHT, SINGLE_JUMP_APEX_HEIGHT } from '../data/movementTuning';
+import { PLAYER_HEIGHT } from '../data/movementTuning';
 import {
   OBSTACLE_TEXTURE_KEYS,
   PROMOTION_OPPORTUNITY_ASSET,
   PROMOTION_TOKEN_ASSET,
   REGULAR_TOKEN_TEXTURE_KEYS,
 } from '../data/gameAssets';
-import type { TokenMotionPattern } from '../entities/TokenMotion';
 import { GameState } from '../state/GameState';
 import { eventBus, GameEvents } from '../events';
 import { playSfx } from '../audio/SfxManager';
@@ -25,6 +24,7 @@ import { isMusicMuted } from '../audio/MusicManager';
 import { createButton } from '../ui/createButton';
 
 const WORLD_HEIGHT = 900;
+const WORLD_TOP_Y = 0;
 const GROUND_Y = 820;
 const GROUND_TOP_Y = GROUND_Y - 16;
 const PLAYER_START_X = 320;
@@ -36,6 +36,7 @@ const BACKGROUND_ASPECT_RATIO = 3168 / 1344;
 const BACKGROUND_SCROLL_FACTOR = 1.35;
 const MIN_SPAWN_DISTANCE = 140;
 const TOKEN_APEX_CLEARANCE = 8;
+const TOKEN_SPEED_DIVISOR = 3;
 const BOSS_PROJECTILE_MIN_INTERVAL_MS = 400;
 const BOSS_PROJECTILE_MAX_INTERVAL_MS = 1000;
 const BOSS_RAPID_SHOT_INTERVAL_MS = 150;
@@ -57,6 +58,7 @@ export class SurviveScene extends Phaser.Scene {
   private obstacleSpawnAccumulator = 0;
   private obstacleSpawnInterval = 0;
   private tokenSpawnAccumulator = 0;
+  private tokenTextureQueue: string[] = [];
   private isEnding = false;
   private officeBackgrounds: Phaser.GameObjects.Image[] = [];
   private gameplayMusic?: Phaser.Sound.BaseSound;
@@ -90,6 +92,7 @@ export class SurviveScene extends Phaser.Scene {
     this.obstacleSpawnAccumulator = 0;
     this.obstacleSpawnInterval = 0;
     this.tokenSpawnAccumulator = 0;
+    this.tokenTextureQueue = [];
     this.inBossEncounter = false;
     this.nextRankForBoss = -1;
     this.boss = null;
@@ -227,25 +230,25 @@ export class SurviveScene extends Phaser.Scene {
   }
 
   private spawnToken(rank: RankConfig): void {
-    const textureKey = Phaser.Utils.Array.GetRandom(REGULAR_TOKEN_TEXTURE_KEYS);
+    if (this.tokenTextureQueue.length === 0) {
+      this.tokenTextureQueue = Phaser.Utils.Array.Shuffle([...REGULAR_TOKEN_TEXTURE_KEYS]);
+    }
+    const textureKey = this.tokenTextureQueue.pop()!;
     const { x, y } = this.findSpawnPosition(rank, 'token');
-    const pattern = Phaser.Utils.Array.GetRandom(['bobbing', 'circular', 'figure8'] as TokenMotionPattern[]);
-    const motion = this.getTokenMotionProfile(rank);
     this.tokens.add(new Collectible(this, x, y, textureKey, {
-      pattern,
-      amplitude: motion.amplitude,
-      speed: rank.tokenMotionSpeed,
+      pattern: 'drifting',
+      amplitude: 0,
+      speed: (rank.obstacleSpeed * OBSTACLE_SPEED_MULTIPLIER) / TOKEN_SPEED_DIVISOR,
     }, rank.badgeDisplaySize));
   }
 
-  private getTokenMotionProfile(rank: RankConfig): { centerHeight: number; amplitude: number } {
+  private getTokenHeightRange(rank: RankConfig): { min: number; max: number } {
     const tokenRadius = (rank.badgeDisplaySize * COLLECTIBLE_RENDER_SCALE) / 2;
-    const topCenterHeight = DOUBLE_JUMP_APEX_HEIGHT - tokenRadius - TOKEN_APEX_CLEARANCE;
-    const bottomCenterHeight = Math.max(tokenRadius + TOKEN_APEX_CLEARANCE, SINGLE_JUMP_APEX_HEIGHT * 0.6);
+    const max = GROUND_TOP_Y - WORLD_TOP_Y - tokenRadius - TOKEN_APEX_CLEARANCE;
 
     return {
-      centerHeight: (topCenterHeight + bottomCenterHeight) / 2,
-      amplitude: (topCenterHeight - bottomCenterHeight) / 2,
+      min: PLAYER_HEIGHT,
+      max,
     };
   }
 
@@ -292,12 +295,14 @@ export class SurviveScene extends Phaser.Scene {
     const heightMax = type === 'obstacle' ? rank.obstacleSpawnHeightMax : 160;
     const activeObjects = [...this.obstacles.getChildren(), ...this.tokens.getChildren()] as Phaser.GameObjects.GameObject[];
     const cameraRight = this.cameras.main.scrollX + this.scale.width;
-    const tokenMotion = type === 'token' ? this.getTokenMotionProfile(rank) : null;
+    const tokenHeightRange = type === 'token' ? this.getTokenHeightRange(rank) : null;
 
     for (let attempt = 0; attempt < 20; attempt += 1) {
       const candidate = {
         x: cameraRight + Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320),
-        y: tokenMotion ? GROUND_TOP_Y - tokenMotion.centerHeight : GROUND_TOP_Y - Phaser.Math.Between(heightMin, heightMax),
+        y: tokenHeightRange
+          ? GROUND_TOP_Y - Phaser.Math.Between(tokenHeightRange.min, tokenHeightRange.max)
+          : GROUND_TOP_Y - Phaser.Math.Between(heightMin, heightMax),
       };
       const hasNearbyObject = activeObjects.some((object) => {
         const existing = object as Phaser.GameObjects.Sprite;
@@ -307,7 +312,8 @@ export class SurviveScene extends Phaser.Scene {
     }
 
     const rightmostObject = activeObjects.reduce((rightmost, object) => Math.max(rightmost, (object as Phaser.GameObjects.Sprite).x), cameraRight);
-    return { x: rightmostObject + MIN_SPAWN_DISTANCE + SPAWN_MARGIN_X, y: GROUND_TOP_Y - heightMin };
+    const fallbackHeight = tokenHeightRange ? tokenHeightRange.min : heightMin;
+    return { x: rightmostObject + MIN_SPAWN_DISTANCE + SPAWN_MARGIN_X, y: GROUND_TOP_Y - fallbackHeight };
   }
 
   private cleanupOffscreen(): void {
