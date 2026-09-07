@@ -2,6 +2,13 @@ import Phaser from 'phaser';
 import { generateTextures } from '../textures/generateTextures';
 import { CHARACTERS } from '../data/characters';
 import proj2 from '../assets/main-menu/proj2.png';
+import collectSfx from '../assets/sounds/collect.mp3';
+import jumpSfx from '../assets/sounds/jump.mp3';
+import ouchFemaleSfx from '../assets/sounds/ouch_female.mp3';
+import ouchMaleSfx from '../assets/sounds/ouch_male.mp3';
+import parrySfx from '../assets/sounds/parry.mp3';
+import shootSfx from '../assets/sounds/shoot.mp3';
+import victorySfx from '../assets/sounds/victory.mp3';
 import {
   BACKGROUND_ASSETS,
   OBSTACLE_ASSETS,
@@ -62,6 +69,13 @@ export class PreloadScene extends Phaser.Scene {
     this.load.audio('boss', 'assets/sounds/boss.mp3');
     this.load.audio('whiteboard-sound', 'assets/sounds/whiteboard-sound.mp3');
     this.load.audio('sfx-swish', 'assets/sounds/swish.mp3');
+    this.load.audio('collect', collectSfx);
+    this.load.audio('jump', jumpSfx);
+    this.load.audio('ouch_female', ouchFemaleSfx);
+    this.load.audio('ouch_male', ouchMaleSfx);
+    this.load.audio('parry', parrySfx);
+    this.load.audio('shoot', shootSfx);
+    this.load.audio('victory', victorySfx);
 
     // Boss encounter poses (128x128, facing left, transparent backgrounds)
     this.load.image('boss-idle', 'assets/boss/PNG/Poses/idle.png');

@@ -54,6 +54,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private readonly standingBodyWidth: number;
   private readonly standingBodyHeight: number;
   private isCrouching = false;
+  private readonly jumpSound: Phaser.Sound.BaseSound;
 
   constructor(scene: Phaser.Scene, x: number, y: number, initialParryWindowSeconds: number, characterId: string) {
     const character = getCharacterById(characterId);
@@ -85,6 +86,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.wasd = scene.input.keyboard!.addKeys('W,A,S,D') as unknown as WasdKeys;
     this.parryKeys = PARRY_KEY_CODES.map((code) => scene.input.keyboard!.addKey(code));
     this.crouchKey = scene.input.keyboard!.addKey('CTRL');
+    this.jumpSound = scene.sound.add('jump');
   }
 
   update(deltaMs: number): void {
@@ -117,6 +119,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.hasMoved = true;
       body.setVelocityY(PLAYER_JUMP_VELOCITY);
       this.jumpsRemaining -= 1;
+      this.jumpSound.play();
     }
 
     if (this.parryRecoveryTimeRemaining > 0) {

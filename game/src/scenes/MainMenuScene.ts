@@ -213,6 +213,10 @@ export class MainMenuScene extends Phaser.Scene {
   }
 
   private startGame(): void {
+    const soundManager = this.sound as any;
+    if (soundManager.context && soundManager.context.state === 'suspended') {
+      void soundManager.context.resume();
+    }
     this.stopMainMenuSound();
     this.scene.start('Survive');
   }

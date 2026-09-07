@@ -48,6 +48,9 @@ const BOSS_BACKGROUND_ALPHA = 0.15;
 const INITIAL_WORLD_BUFFER = 2000;
 const WORLD_EXTENSION_THRESHOLD = 3000;
 const WORLD_EXTENSION_LENGTH = 10000;
+const GAMEPLAY_CUE_NAMES = ['collect', 'ouch_female', 'ouch_male', 'parry', 'shoot', 'victory'] as const;
+type GameplayCueName = (typeof GAMEPLAY_CUE_NAMES)[number];
+const CUE_POOL_SIZE = 4;
 
 export class SurviveScene extends Phaser.Scene {
   private player!: Player;
@@ -64,6 +67,8 @@ export class SurviveScene extends Phaser.Scene {
   private gameplayMusic?: Phaser.Sound.BaseSound;
   private gameplaySfx?: Phaser.Sound.BaseSound;
   private bossMusic?: Phaser.Sound.BaseSound;
+  private cuePools = new Map<GameplayCueName, Phaser.Sound.BaseSound[]>();
+  private cuePoolPositions = new Map<GameplayCueName, number>();
   private worldWidth = 0;
   private groundCollider!: Phaser.GameObjects.Rectangle;
 
@@ -157,6 +162,7 @@ export class SurviveScene extends Phaser.Scene {
 
     this.input.keyboard?.on('keydown-ESC', this.openPauseMenu, this);
 
+    this.createCuePools();
     this.startGameplayMusic();
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.stopAllMusic, this);
     this.emitFullState();
@@ -336,6 +342,7 @@ export class SurviveScene extends Phaser.Scene {
     if (this.player.isParrying) {
       this.player.confirmParrySuccess();
       obstacle.resolveParried();
+      this.playCue('parry');
       this.burst(obstacle.x, obstacle.y, 0xffe066);
     } else {
       obstacle.resolveHit();
@@ -357,7 +364,7 @@ export class SurviveScene extends Phaser.Scene {
   private awardToken(): number {
     if (this.isEnding || this.inBossEncounter || this.state.isRetired) return this.state.tokens;
 
-    playSfx('collect');
+    this.playCue('collect');
     const count = this.state.addToken();
     const needed = this.state.rank.tokensToPromote;
     eventBus.emit(GameEvents.TokensChanged, { count, needed });
@@ -394,7 +401,6 @@ export class SurviveScene extends Phaser.Scene {
     if (this.state.isRetired) {
       this.triggerVictory();
     } else {
-      playSfx('promote');
       this.burst(this.player.x, this.player.y, 0x7cfc90);
     }
   }
@@ -402,7 +408,7 @@ export class SurviveScene extends Phaser.Scene {
   private registerHit(): void {
     if (this.isEnding || this.player.invincible) return;
 
-    playSfx('hit');
+    this.playCue(this.state.characterId.startsWith('female-') ? 'ouch_female' : 'ouch_male');
     const hits = this.state.registerHit();
     eventBus.emit(GameEvents.HitsChanged, hits);
 
@@ -624,6 +630,7 @@ export class SurviveScene extends Phaser.Scene {
       48
     );
     this.bossProjectiles.add(projectile);
+    this.playCue('shoot');
   }
 
   private handleBossProjectileOverlap(_playerObj: unknown, projectileObj: unknown): void {
@@ -632,7 +639,7 @@ export class SurviveScene extends Phaser.Scene {
 
     if (this.player.isParrying) {
       projectile.resolveParried();
-      playSfx('collect');
+      this.playCue('parry');
       this.burst(projectile.x, projectile.y, 0xffe066);
       
       // Damage boss on successful parry
@@ -683,6 +690,7 @@ export class SurviveScene extends Phaser.Scene {
   }
 
   private displayDefeatPromotionToken(onComplete: () => void): void {
+    this.playCue('victory');
     const tokenSprite = this.add.sprite(
       this.scale.width / 2,
       this.scale.height / 2,
@@ -813,6 +821,27 @@ export class SurviveScene extends Phaser.Scene {
     this.gameplaySfx = undefined;
     this.bossMusic?.destroy();
     this.bossMusic = undefined;
+    for (const sounds of this.cuePools.values()) {
+      sounds.forEach((sound) => sound.destroy());
+    }
+    this.cuePools.clear();
+    this.cuePoolPositions.clear();
+  }
+
+  private createCuePools(): void {
+    for (const name of GAMEPLAY_CUE_NAMES) {
+      this.cuePools.set(name, Array.from({ length: CUE_POOL_SIZE }, () => this.sound.add(name)));
+      this.cuePoolPositions.set(name, 0);
+    }
+  }
+
+  private playCue(name: GameplayCueName): void {
+    const pool = this.cuePools.get(name);
+    if (!pool) return;
+
+    const position = this.cuePoolPositions.get(name) ?? 0;
+    pool[position].play();
+    this.cuePoolPositions.set(name, (position + 1) % pool.length);
   }
 
   private dimBossBackground(): void {
