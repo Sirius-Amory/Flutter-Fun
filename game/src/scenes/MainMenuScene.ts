@@ -5,8 +5,8 @@ import { CHARACTERS, getCharacterById } from '../data/characters';
 import { GameState } from '../state/GameState';
 import { CharacterCarousel } from '../ui/CharacterCarousel';
 
-const ICON_WIDTH_PCT = 0.09;
-const ICON_EDGE_PCT = 0.09;
+const ICON_WIDTH_PCT = 0.06;
+const ICON_EDGE_PCT = 0.06;
 const MENU_MUSIC_VOLUME = 0.05;
 
 export class MainMenuScene extends Phaser.Scene {
