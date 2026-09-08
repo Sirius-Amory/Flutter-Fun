@@ -59,10 +59,11 @@ const GAMEPLAY_CUE_NAMES = [
   'villain-2',
   'villain-3',
   'villain-4',
+  'villain-5',
   'villain-defeated',
 ] as const;
 type GameplayCueName = (typeof GAMEPLAY_CUE_NAMES)[number];
-const CUE_POOL_SIZE = 4;
+const CUE_POOL_SIZE = 5;
 
 export class SurviveScene extends Phaser.Scene {
   private player!: Player;
@@ -869,9 +870,9 @@ export class SurviveScene extends Phaser.Scene {
   }
 
   private playBossTelegraphCue(): void {
-    let cueIndex = Phaser.Math.Between(0, 3);
+    let cueIndex = Phaser.Math.Between(0, 4);
     if (cueIndex === this.lastBossTelegraphCue) {
-      cueIndex = (cueIndex + Phaser.Math.Between(1, 3)) % 4;
+      cueIndex = (cueIndex + Phaser.Math.Between(1, 4)) % 5;
     }
     this.lastBossTelegraphCue = cueIndex;
     this.playCue(`villain-${cueIndex + 1}` as GameplayCueName);

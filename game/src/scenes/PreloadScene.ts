@@ -13,6 +13,7 @@ import villain1Sfx from '../assets/sounds/villain-1.mp3';
 import villain2Sfx from '../assets/sounds/villain-2.mp3';
 import villain3Sfx from '../assets/sounds/villain-3.mp3';
 import villain4Sfx from '../assets/sounds/villain-4.mp3';
+import villain5Sfx from '../assets/sounds/villain-5.mp3';
 import villainDefeatedSfx from '../assets/sounds/villain-defeated.mp3';
 import {
   BACKGROUND_ASSETS,
@@ -85,6 +86,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.audio('villain-2', villain2Sfx);
     this.load.audio('villain-3', villain3Sfx);
     this.load.audio('villain-4', villain4Sfx);
+    this.load.audio('villain-5', villain5Sfx);
     this.load.audio('villain-defeated', villainDefeatedSfx);
 
     // Boss encounter poses (128x128, facing left, transparent backgrounds)
