@@ -18,7 +18,11 @@ export class LeaderboardScene extends Phaser.Scene {
       .text(width / 2, 60, 'Leaderboard', { fontSize: '36px', color: '#ffd23f', fontStyle: 'bold' })
       .setOrigin(0.5);
     const status = this.add.text(width / 2, height / 2, 'Loading leaderboard...', { fontSize: '18px', color: '#ffffff' }).setOrigin(0.5);
-    createButton(this, width / 2, height - 50, 'Back', () => this.scene.start('MainMenu'));
+    createButton(this, width / 2, height - 50, 'Back', () => {
+      this.scene.stop('Leaderboard');
+      this.scene.start('MainMenu');
+      this.scene.bringToTop('MainMenu');
+    });
     void this.loadLeaderboard(status);
   }
 

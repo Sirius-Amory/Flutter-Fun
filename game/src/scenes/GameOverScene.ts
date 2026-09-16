@@ -69,6 +69,7 @@ export class GameOverScene extends Phaser.Scene {
       sceneManager.stop('GameOver');
       sceneManager.stop('HUD');
       sceneManager.stop('Survive');
+      sceneManager.stop('Pause');
       sceneManager.start('MainMenu');
       sceneManager.bringToTop('MainMenu');
     });

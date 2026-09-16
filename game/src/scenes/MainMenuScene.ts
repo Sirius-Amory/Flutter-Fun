@@ -254,5 +254,6 @@ export class MainMenuScene extends Phaser.Scene {
   shutdown(): void {
     this.scale.off(Phaser.Scale.Events.RESIZE, this.layout, this);
     this.carousel.destroy();
+    this.stopMainMenuSound();
   }
 }
