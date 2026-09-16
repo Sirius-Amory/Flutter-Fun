@@ -6,7 +6,7 @@ import { GameState } from '../state/GameState';
 import { CharacterCarousel } from '../ui/CharacterCarousel';
 
 const ICON_WIDTH_PCT = 0.06;
-const ICON_EDGE_PCT = 0.06;
+const ICON_EDGE_PADDING = 12;
 const MENU_MUSIC_VOLUME = 0.05;
 
 export class MainMenuScene extends Phaser.Scene {
@@ -101,7 +101,6 @@ export class MainMenuScene extends Phaser.Scene {
     this.musicToggleIcon.setInteractive({ useHandCursor: true });
     this.musicToggleIcon.on('pointerdown', () => this.toggleMenuMusic());
     this.musicToggleIcon.setDepth(30);
-    this.layout();
     this.scale.on(Phaser.Scale.Events.RESIZE, this.layout, this);
 
     // Create proj2 image (whiteboard) with fixed scale to preserve aspect ratio
@@ -118,6 +117,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     this.controlsDimmer = this.add.rectangle(width / 2, height / 2, width, height, 0x000000, 0);
     this.controlsDimmer.setScrollFactor(0).setDepth(25);
+    this.layout();
 
     this.proj2TargetX = this.proj2OffscreenX;
     this.proj2Speed = 0;
@@ -237,7 +237,6 @@ export class MainMenuScene extends Phaser.Scene {
   private layout(): void {
     const { width, height } = this.scale;
     const iconWidth = width * ICON_WIDTH_PCT;
-    const iconEdge = width * ICON_EDGE_PCT;
 
     this.controlsDimmer?.setPosition(width / 2, height / 2).setSize(width, height);
 
@@ -246,9 +245,18 @@ export class MainMenuScene extends Phaser.Scene {
     }
     this.musicToggleIcon.setDisplaySize(iconWidth / 2, (this.musicToggleIcon.height / this.musicToggleIcon.width) * (iconWidth / 2));
 
-    this.controlsIcon.setPosition(iconEdge/2, iconEdge/2);
-    this.leaderboardIcon.setPosition(width - iconEdge/2, iconEdge/2);
-    this.musicToggleIcon.setPosition(width - iconEdge/2, height - iconEdge/2);
+    this.controlsIcon.setPosition(
+      this.controlsIcon.displayWidth / 2 + ICON_EDGE_PADDING,
+      this.controlsIcon.displayHeight / 2 + ICON_EDGE_PADDING
+    );
+    this.leaderboardIcon.setPosition(
+      width - this.leaderboardIcon.displayWidth / 2 - ICON_EDGE_PADDING,
+      this.leaderboardIcon.displayHeight / 2 + ICON_EDGE_PADDING
+    );
+    this.musicToggleIcon.setPosition(
+      width - this.musicToggleIcon.displayWidth / 2 - ICON_EDGE_PADDING,
+      height - this.musicToggleIcon.displayHeight / 2 - ICON_EDGE_PADDING
+    );
   }
 
   shutdown(): void {
