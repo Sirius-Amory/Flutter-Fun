@@ -7,6 +7,7 @@ import {
   FINAL_RANK_INDEX,
   FINAL_DISTANCE,
   OBSTACLE_SPEED_MULTIPLIER,
+  REGULAR_PROJECTILE_SPEED_MULTIPLIER,
   RANKS,
   type RankConfig,
 } from '../data/rankConfig';
@@ -249,7 +250,7 @@ export class SurviveScene extends Phaser.Scene {
   private spawnObstacle(rank: RankConfig): void {
     const { x, y } = this.findSpawnPosition(rank, 'obstacle');
     const textureKey = Phaser.Utils.Array.GetRandom(OBSTACLE_TEXTURE_KEYS);
-    this.obstacles.add(new Projectile(this, x, y, textureKey, this.player.x, this.player.y, rank.obstacleSpeed * OBSTACLE_SPEED_MULTIPLIER, rank.obstacleRotationSpeed, rank.badgeDisplaySize));
+    this.obstacles.add(new Projectile(this, x, y, textureKey, this.player.x, this.player.y, rank.obstacleSpeed * REGULAR_PROJECTILE_SPEED_MULTIPLIER, rank.obstacleRotationSpeed, rank.badgeDisplaySize));
   }
 
   private spawnToken(rank: RankConfig): void {
@@ -450,7 +451,7 @@ export class SurviveScene extends Phaser.Scene {
     this.time.delayedCall(500, () => {
       playSfx('gameOver');
       this.scene.stop('HUD');
-      this.scene.start('GameOver', { age: this.state.age, rankId: this.state.rank.label });
+      this.scene.start('GameOver', { age: this.state.age, rankId: this.state.rank.label, score: this.state.distance });
     });
   }
 

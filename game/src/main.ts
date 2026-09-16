@@ -14,6 +14,9 @@ const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   title: 'Cubicle Survivor',
   parent: 'app',
+  dom: {
+    createContainer: true,
+  },
   backgroundColor: '#4488aa',
   pixelArt: true,
   render: {
