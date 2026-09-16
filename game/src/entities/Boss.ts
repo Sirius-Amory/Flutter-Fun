@@ -53,11 +53,12 @@ export const BOSS_CONFIGS: Record<number, BossConfig> = {
   },
 };
 
-export const BOSS_SCALE_MULTIPLIER = 0.55;
+export const BOSS_SCALE_MULTIPLIER = 2;
 
 // Per-texture width scaling to normalize inconsistent source dimensions
 const TEXTURE_SCALE_ADJUSTMENTS: Record<string, number> = {
   'boss-idle2': 0.594,
+  'boss-telegraph': 0.7,
   'boss-walk1': 0.771,
   'boss-walk2': 0.771,
   'boss-attack': 0.52,

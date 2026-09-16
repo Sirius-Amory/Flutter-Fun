@@ -56,7 +56,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // 2. Logo (centered, prominent)
     const logo = this.add.image(width / 2, height * 0.30, 'mainmenu-logo');
-    logo.setScale(0.6); // Adjust scale if needed — report this value
+    logo.setScale(1.5);
     logo.setDepth(10);
 
     // 3. Carousel (positioned below logo)
@@ -81,7 +81,6 @@ export class MainMenuScene extends Phaser.Scene {
 
     // 4. Start button (image, small scale, below carousel)
     const startButton = this.add.image(width / 2, height * 0.90, 'mainmenu-start');
-    startButton.setScale(0.4); // Adjust scale if needed — report this value
     startButton.setInteractive({ useHandCursor: true });
     startButton.on('pointerdown', () => this.startGame());
     startButton.setDepth(20);
