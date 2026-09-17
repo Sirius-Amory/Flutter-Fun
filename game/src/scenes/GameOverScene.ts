@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { stopBackgroundMusic } from '../audio/MusicManager';
 import { createButton } from '../ui/createButton';
+import { getNextGameOverCause } from './gameOverMessages';
 
 interface GameOverSceneData {
   age: number;
@@ -12,6 +13,7 @@ export class GameOverScene extends Phaser.Scene {
   private age = 20;
   private rankId = 'A1';
   private score = 0;
+  private causeOfDeath = '';
 
   constructor() {
     super('GameOver');
@@ -33,8 +35,9 @@ export class GameOverScene extends Phaser.Scene {
     this.add
       .text(width / 2, height / 2 - 100, 'Burned Out', { fontSize: compact ? '36px' : '48px', color: '#ff6b6b', fontStyle: 'bold' })
       .setOrigin(0.5);
+    this.causeOfDeath = getNextGameOverCause();
     this.add
-      .text(width / 2, height / 2 - 40, `IT crushed your soul as a ${this.rankId} at age ${this.age}`, {
+      .text(width / 2, height / 2 - 40, `You ${this.causeOfDeath} at age ${this.age}`, {
         fontSize: compact ? '14px' : '22px',
         color: '#ffffff',
       })
@@ -81,7 +84,13 @@ export class GameOverScene extends Phaser.Scene {
       const response = await fetch('/api/submitScore', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ playerName, score: Math.floor(this.score) }),
+        body: JSON.stringify({
+          playerName,
+          score: Math.floor(this.score),
+          age: this.age,
+          rank: this.rankId,
+          causeOfDeath: this.causeOfDeath,
+        }),
       });
       if (!response.ok) throw new Error(`Score submission failed: ${response.status}`);
     } catch (error) {

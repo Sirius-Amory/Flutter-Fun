@@ -9,20 +9,31 @@ export async function getLeaderboard(request: HttpRequest, context: InvocationCo
     return { status: 500, body: "Storage is not configured" };
   }
 
-  const scores: { playerName: string; score: number }[] = [];
+  const scores: Array<{ playerName: string; score: number; age: number; rank: string; causeOfDeath: string }> = [];
 
   try {
     const client = TableClient.fromConnectionString(connectionString, tableName);
     const entities = client.listEntities();
     for await (const entity of entities) {
-      scores.push({ playerName: entity.playerName as string, score: entity.score as number });
+      scores.push({
+        playerName: entity.playerName as string,
+        score: entity.score as number,
+        age: entity.age as number,
+        rank: entity.rank as string,
+        causeOfDeath: entity.causeOfDeath as string,
+      });
     }
   } catch (err: any) {
     if (err.statusCode !== 404) throw err;
   }
 
   scores.sort((a, b) => b.score - a.score);
-  const top = scores.slice(0, 10);
+  const top = scores.slice(0, 10).map(({ playerName, age, rank, causeOfDeath }) => ({
+    playerName,
+    age,
+    rank,
+    causeOfDeath,
+  }));
 
   return { status: 200, jsonBody: top };
 }
