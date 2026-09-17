@@ -1,16 +1,18 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { TableClient } from "@azure/data-tables";
 
-const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING!;
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? process.env.AzureWebJobsStorage;
 const tableName = "leaderboard";
 
 export async function getLeaderboard(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-  const client = TableClient.fromConnectionString(connectionString, tableName);
+  if (!connectionString) {
+    return { status: 500, body: "Storage is not configured" };
+  }
 
-  const entities = client.listEntities();
   const scores: { playerName: string; score: number }[] = [];
 
   try {
+    const client = TableClient.fromConnectionString(connectionString, tableName);
     const entities = client.listEntities();
     for await (const entity of entities) {
       scores.push({ playerName: entity.playerName as string, score: entity.score as number });

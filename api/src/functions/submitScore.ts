@@ -1,7 +1,7 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 import { TableClient } from "@azure/data-tables";
 
-const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING!;
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING ?? process.env.AzureWebJobsStorage;
 const tableName = "leaderboard";
 
 export async function submitScore(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
@@ -13,6 +13,10 @@ export async function submitScore(request: HttpRequest, context: InvocationConte
   }
   if (typeof score !== "number" || score < 0 || score > 999999) {
     return { status: 400, body: "Invalid score" };
+  }
+
+  if (!connectionString) {
+    return { status: 500, body: "Storage is not configured" };
   }
 
   const client = TableClient.fromConnectionString(connectionString, tableName);
