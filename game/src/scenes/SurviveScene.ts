@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
-import { FloorHazard } from '../entities/FloorHazard';
+import { FloorHazard, FLOOR_HAZARD_SCROLL_FACTOR } from '../entities/FloorHazard';
 import { Boss } from '../entities/Boss';
 import { COLLECTIBLE_RENDER_SCALE, Collectible } from '../entities/Collectible';
 import {
@@ -273,12 +273,19 @@ export class SurviveScene extends Phaser.Scene {
   }
 
   private spawnFloorHazard(): void {
-    const cameraRight = this.cameras.main.scrollX + this.scale.width;
-    const x = cameraRight + Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320);
-    const textureKey = Phaser.Utils.Array.GetRandom(FLOOR_HAZARD_TEXTURE_KEYS);
-    const hazard = new FloorHazard(this, x, GROUND_Y - 4, textureKey);
-    this.floorHazards.add(hazard);
+  const camera = this.cameras.main;
+  const x = camera.scrollX + this.scale.width + Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320);
+  const textureKey = Phaser.Utils.Array.GetRandom(FLOOR_HAZARD_TEXTURE_KEYS);
+  const hazard = new FloorHazard(this, x, GROUND_Y + 90, textureKey);
+
+  const spawnEdgeWorldX = this.scale.width + camera.scrollX * FLOOR_HAZARD_SCROLL_FACTOR;
+  const bounds = hazard.getBounds();
+  if (bounds.left < spawnEdgeWorldX) {
+    hazard.x += spawnEdgeWorldX - bounds.left;
   }
+
+  this.floorHazards.add(hazard);
+}
 
   private spawnToken(rank: RankConfig): void {
     if (this.tokenTextureQueue.length === 0) {

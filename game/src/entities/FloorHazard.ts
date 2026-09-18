@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 
 const FLOOR_HAZARD_MAX_DIMENSION = 92 * 6;
-const FLOOR_HAZARD_SCROLL_FACTOR = 1;
+export const FLOOR_HAZARD_SCROLL_FACTOR = 1.15;
 
 export class FloorHazard extends Phaser.Physics.Arcade.Sprite {
   constructor(scene: Phaser.Scene, x: number, y: number, textureKey: string) {
