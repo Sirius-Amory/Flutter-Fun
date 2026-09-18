@@ -260,7 +260,7 @@ export class SurviveScene extends Phaser.Scene {
       this.scale.width +
       Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320);
     const textureKey = Phaser.Utils.Array.GetRandom(FLOOR_HAZARD_TEXTURE_KEYS);
-    const hazard = new FloorHazard(this, anchorX, GROUND_Y + 60, textureKey);
+    const hazard = new FloorHazard(this, anchorX, GROUND_Y + 30, textureKey);
 
     const screenRightWorldX = camera.scrollX + this.scale.width;
     const overlap = screenRightWorldX - hazard.getBounds().left;
