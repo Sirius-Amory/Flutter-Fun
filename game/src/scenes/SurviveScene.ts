@@ -2,22 +2,18 @@ import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
 import { FloorHazard, FLOOR_HAZARD_SCROLL_FACTOR } from '../entities/FloorHazard';
-import { Boss } from '../entities/Boss';
 import { COLLECTIBLE_RENDER_SCALE, Collectible } from '../entities/Collectible';
 import {
   FINAL_RANK_INDEX,
   FINAL_DISTANCE,
   OBSTACLE_SPEED_MULTIPLIER,
   REGULAR_PROJECTILE_SPEED_MULTIPLIER,
-  RANKS,
   type RankConfig,
 } from '../data/rankConfig';
 import { PLAYER_HEIGHT } from '../data/movementTuning';
 import {
   OBSTACLE_TEXTURE_KEYS,
   FLOOR_HAZARD_TEXTURE_KEYS,
-  PROMOTION_OPPORTUNITY_ASSET,
-  PROMOTION_TOKEN_ASSET,
   REGULAR_TOKEN_TEXTURE_KEYS,
 } from '../data/gameAssets';
 import { GameState } from '../state/GameState';
@@ -25,6 +21,7 @@ import { eventBus, GameEvents } from '../events';
 import { playSfx } from '../audio/SfxManager';
 import { isMusicMuted } from '../audio/MusicManager';
 import { createLeaderboardService } from './GameOverScene';
+import { BossEncounter } from './BossEncounter';
 
 const WORLD_HEIGHT = 900;
 const WORLD_TOP_Y = 0;
@@ -37,17 +34,10 @@ const SPAWN_MARGIN_X = 120;
 const CLEANUP_MARGIN_X = 120;
 const BACKGROUND_ASPECT_RATIO = 3168 / 1344;
 const BACKGROUND_SCROLL_FACTOR = 1.15;
+const BACKGROUND_NORMAL_ALPHA = 0.72;
 const MIN_SPAWN_DISTANCE = 140;
 const TOKEN_APEX_CLEARANCE = 8;
 const TOKEN_SPEED_DIVISOR = 3;
-const BOSS_PROJECTILE_MIN_INTERVAL_MS = 400;
-const BOSS_PROJECTILE_MAX_INTERVAL_MS = 1000;
-const BOSS_RAPID_SHOT_INTERVAL_MS = 150;
-const BOSS_PROJECTILE_SPEED_MULTIPLIER = 2.5;
-const BOSS_PARRY_WINDOW_MULTIPLIER = 0.5;
-const BOSS_DARKEN_DURATION_MS = 2000;
-const BACKGROUND_NORMAL_ALPHA = 0.72;
-const BOSS_BACKGROUND_ALPHA = 0.15;
 const INITIAL_WORLD_BUFFER = 2000;
 const WORLD_EXTENSION_THRESHOLD = 3000;
 const WORLD_EXTENSION_LENGTH = 10000;
@@ -67,7 +57,9 @@ const GAMEPLAY_CUE_NAMES = [
 ] as const;
 type GameplayCueName = (typeof GAMEPLAY_CUE_NAMES)[number];
 const CUE_POOL_SIZE = 5;
-const FLOOR_HAZARD_SPAWN_RATE = 1.35;
+// Multiplies the current rank's obstacle-spawn interval to get the floor-hazard
+// interval, e.g. 2.7 means hazards spawn roughly 2.7x less often than obstacles.
+const FLOOR_HAZARD_INTERVAL_MULTIPLIER = 2.7;
 const FLOOR_HAZARD_CLEANUP_MARGIN = 160;
 
 export class SurviveScene extends Phaser.Scene {
@@ -87,35 +79,20 @@ export class SurviveScene extends Phaser.Scene {
   private officeBackgrounds: Phaser.GameObjects.Image[] = [];
   private gameplayMusic?: Phaser.Sound.BaseSound;
   private gameplaySfx?: Phaser.Sound.BaseSound;
-  private bossMusic?: Phaser.Sound.BaseSound;
   private cuePools = new Map<GameplayCueName, Phaser.Sound.BaseSound[]>();
   private cuePoolPositions = new Map<GameplayCueName, number>();
   private worldWidth = 0;
   private groundCollider!: Phaser.GameObjects.Rectangle;
-
-  // Boss encounter state
-  private boss: Boss | null = null;
-  private inBossEncounter = false;
-  private nextRankForBoss = -1;
-  private bossProjectileSpawnAccumulator = 0;
-  private nextBossProjectileDelayMs = 0;
-  private rapidShotsRemaining = 0;
-  private bossWasAttacking = false;
-  private bossWasTelegraphing = false;
-  private lastBossTelegraphCue = -1;
-  private bossDefeatSequenceActive = false;
-
-  // Boss health bar UI
-  private healthBarBackground: Phaser.GameObjects.Rectangle | null = null;
-  private healthBarFill: Phaser.GameObjects.Rectangle | null = null;
-  private healthBarLabel: Phaser.GameObjects.Text | null = null;
-  private healthBarContainer: Phaser.GameObjects.Container | null = null;
+  private bossEncounter!: BossEncounter;
 
   constructor() {
     super('Survive');
   }
 
   init(): void {
+    // Every field below is rebuilt from scratch in create() (including a fresh
+    // BossEncounter instance), so init() only needs to reset flags create()
+    // doesn't itself reinitialise.
     this.isEnding = false;
     this.obstacleSpawnAccumulator = 0;
     this.obstacleSpawnInterval = 0;
@@ -123,20 +100,6 @@ export class SurviveScene extends Phaser.Scene {
     this.tokenTextureQueue = [];
     this.floorHazardSpawnAccumulator = 0;
     this.floorHazardSpawnInterval = 0;
-    this.inBossEncounter = false;
-    this.nextRankForBoss = -1;
-    this.boss = null;
-    this.bossProjectileSpawnAccumulator = 0;
-    this.nextBossProjectileDelayMs = 0;
-    this.rapidShotsRemaining = 0;
-    this.bossWasAttacking = false;
-    this.bossWasTelegraphing = false;
-    this.lastBossTelegraphCue = -1;
-    this.bossDefeatSequenceActive = false;
-    this.healthBarBackground = null;
-    this.healthBarFill = null;
-    this.healthBarLabel = null;
-    this.healthBarContainer = null;
   }
 
   create(): void {
@@ -179,8 +142,25 @@ export class SurviveScene extends Phaser.Scene {
     this.physics.add.collider(this.player, ground);
     this.physics.add.overlap(this.player, this.obstacles, this.handleObstacleOverlap, undefined, this);
     this.physics.add.overlap(this.player, this.tokens, this.handleTokenOverlap, undefined, this);
-    this.physics.add.overlap(this.player, this.bossProjectiles, this.handleBossProjectileOverlap, undefined, this);
+    this.physics.add.overlap(
+      this.player,
+      this.bossProjectiles,
+      (_player, projectile) => this.bossEncounter.handleProjectileOverlap(projectile as Projectile),
+      undefined,
+      this
+    );
     this.physics.add.overlap(this.player, this.floorHazards, this.handleFloorHazardOverlap, undefined, this);
+
+    this.bossEncounter = new BossEncounter(this, this.officeBackgrounds, this.bossProjectiles, this.player, {
+      playCue: (name) => this.playCue(name as GameplayCueName),
+      burst: (x, y, tint) => this.burst(x, y, tint),
+      registerHit: () => this.registerHit(),
+      triggerGameOver: () => this.triggerGameOver(),
+      isEnding: () => this.isEnding,
+      stopGameplayMusic: () => this.gameplayMusic?.stop(),
+      applyVictory: (targetRankIndex) => this.applyVictory(targetRankIndex),
+      resumeGameplay: () => this.resumeNormalGameplay(),
+    });
 
     this.scene.launch('HUD');
 
@@ -198,16 +178,17 @@ export class SurviveScene extends Phaser.Scene {
     this.player.update(delta);
     this.extendWorldIfNeeded();
 
-    if (this.inBossEncounter && this.boss) {
-      this.updateBossEncounter(delta);
+    if (this.bossEncounter.isEngaged) {
+      this.bossEncounter.update(delta);
     } else {
       this.updateProgress();
       if (this.player.startedMoving) this.updateSpawning(delta);
     }
 
     this.updateMovingEntities(delta);
+    this.updateFloorHazardParallax();
     this.checkSweptProjectileOverlaps();
-    this.cleanupBossProjectilesPastPlayer();
+    this.bossEncounter.cleanupProjectilesPastPlayer();
     this.updateOfficeBackground();
     this.cleanupOffscreen();
   }
@@ -255,8 +236,8 @@ export class SurviveScene extends Phaser.Scene {
     this.floorHazardSpawnAccumulator += delta;
     if (this.floorHazardSpawnInterval === 0) {
       this.floorHazardSpawnInterval = Phaser.Math.Between(
-        Math.round(rank.obstacleSpawnMinMs * FLOOR_HAZARD_SPAWN_RATE),
-        Math.round(rank.obstacleSpawnMaxMs * FLOOR_HAZARD_SPAWN_RATE)
+        Math.round(rank.obstacleSpawnMinMs * FLOOR_HAZARD_INTERVAL_MULTIPLIER),
+        Math.round(rank.obstacleSpawnMaxMs * FLOOR_HAZARD_INTERVAL_MULTIPLIER)
       );
     }
     if (this.floorHazardSpawnAccumulator >= this.floorHazardSpawnInterval) {
@@ -273,19 +254,22 @@ export class SurviveScene extends Phaser.Scene {
   }
 
   private spawnFloorHazard(): void {
-  const camera = this.cameras.main;
-  const x = camera.scrollX + this.scale.width + Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320);
-  const textureKey = Phaser.Utils.Array.GetRandom(FLOOR_HAZARD_TEXTURE_KEYS);
-  const hazard = new FloorHazard(this, x, GROUND_Y + 90, textureKey);
+    const camera = this.cameras.main;
+    const anchorX =
+      camera.scrollX * FLOOR_HAZARD_SCROLL_FACTOR +
+      this.scale.width +
+      Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320);
+    const textureKey = Phaser.Utils.Array.GetRandom(FLOOR_HAZARD_TEXTURE_KEYS);
+    const hazard = new FloorHazard(this, anchorX, GROUND_Y + 60, textureKey);
 
-  const spawnEdgeWorldX = this.scale.width + camera.scrollX * FLOOR_HAZARD_SCROLL_FACTOR;
-  const bounds = hazard.getBounds();
-  if (bounds.left < spawnEdgeWorldX) {
-    hazard.x += spawnEdgeWorldX - bounds.left;
+    const screenRightWorldX = camera.scrollX + this.scale.width;
+    const overlap = screenRightWorldX - hazard.getBounds().left;
+    if (overlap > 0) {
+      hazard.nudgeAnchorX(overlap, camera);
+    }
+
+    this.floorHazards.add(hazard);
   }
-
-  this.floorHazards.add(hazard);
-}
 
   private spawnToken(rank: RankConfig): void {
     if (this.tokenTextureQueue.length === 0) {
@@ -316,6 +300,13 @@ export class SurviveScene extends Phaser.Scene {
     for (const child of this.bossProjectiles.getChildren()) (child as Projectile).updateMotion(delta);
   }
 
+  private updateFloorHazardParallax(): void {
+    const camera = this.cameras.main;
+    for (const child of this.floorHazards.getChildren()) {
+      (child as FloorHazard).updateParallax(camera);
+    }
+  }
+
   private checkSweptProjectileOverlaps(): void {
     const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
     const playerBounds = new Phaser.Geom.Rectangle(playerBody.x, playerBody.y, playerBody.width, playerBody.height);
@@ -332,18 +323,7 @@ export class SurviveScene extends Phaser.Scene {
       const projectile = child as Projectile;
       if (projectile.isResolved) continue;
       if (Phaser.Geom.Intersects.RectangleToRectangle(playerBounds, projectile.getSweptBodyBounds())) {
-        this.handleBossProjectileOverlap(this.player, projectile);
-      }
-    }
-  }
-
-  private cleanupBossProjectilesPastPlayer(): void {
-    const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-    const playerLeft = playerBody.x;
-    for (const child of this.bossProjectiles.getChildren()) {
-      const projectile = child as Projectile;
-      if (!projectile.isResolved && projectile.x + projectile.displayWidth / 2 < playerLeft) {
-        projectile.destroy();
+        this.bossEncounter.handleProjectileOverlap(projectile);
       }
     }
   }
@@ -467,7 +447,7 @@ export class SurviveScene extends Phaser.Scene {
   }
 
   private awardToken(): number {
-    if (this.isEnding || this.inBossEncounter || this.state.isRetired) return this.state.tokens;
+    if (this.isEnding || this.bossEncounter.isActive || this.state.isRetired) return this.state.tokens;
 
     this.playCue('collect');
     const count = this.state.addToken();
@@ -485,14 +465,16 @@ export class SurviveScene extends Phaser.Scene {
     const clamped = Math.min(nextIndex, FINAL_RANK_INDEX);
     if (clamped <= this.state.rankIndex) return;
 
-    // Trigger boss encounter instead of immediate promotion
-    if (!this.inBossEncounter && this.nextRankForBoss < 0) {
-      this.nextRankForBoss = clamped;
-      this.startBossEncounter();
+    // Trigger a boss encounter instead of promoting immediately.
+    if (!this.bossEncounter.isActive) {
+      this.startBossEncounter(clamped);
       return;
     }
 
-    // This code runs after boss is defeated
+    // NOTE: unreachable as things stand — applyVictory() (called from
+    // BossEncounter on defeat) applies the rank change directly and this
+    // method is never invoked a second time for the same promotion. Left
+    // as-is per your call to look at this separately.
     this.state.rankIndex = clamped;
     this.state.resetTokens();
     const rank = this.state.rank;
@@ -508,6 +490,49 @@ export class SurviveScene extends Phaser.Scene {
     } else {
       this.burst(this.player.x, this.player.y, 0x7cfc90);
     }
+  }
+
+  private startBossEncounter(targetRankIndex: number): void {
+    // Pause all normal spawning; the boss encounter has its own pacing.
+    this.obstacleSpawnAccumulator = 0;
+    this.obstacleSpawnInterval = 0;
+    this.tokenSpawnAccumulator = 0;
+    this.tokens.clear(true, true);
+    this.floorHazardSpawnAccumulator = 0;
+    this.floorHazardSpawnInterval = 0;
+    this.floorHazards.clear(true, true);
+
+    this.bossEncounter.start(this.state.rank, targetRankIndex);
+  }
+
+  /** Applies the rank/state change on boss victory. Called by BossEncounter via callback. */
+  private applyVictory(targetRankIndex: number): void {
+    this.state.rankIndex = targetRankIndex;
+    this.state.resetHits(); // full health on promotion
+    this.state.resetTokens();
+    eventBus.emit(GameEvents.HitsChanged, this.state.hits);
+
+    const rank = this.state.rank;
+    this.player.setRankScale(rank.playerScale);
+    this.player.setParryWindowSeconds(rank.parryWindowSeconds);
+
+    eventBus.emit(GameEvents.RankChanged, rank);
+    eventBus.emit(GameEvents.AgeChanged, rank.age);
+    eventBus.emit(GameEvents.TokensChanged, { count: 0, needed: rank.tokensToPromote });
+  }
+
+  private resumeNormalGameplay(): void {
+    this.startGameplayMusic();
+
+    const camera = this.cameras.main;
+    const offsetX = this.player.x - camera.scrollX - camera.width / 2;
+    const offsetY = this.player.y - camera.scrollY - camera.height / 2;
+    camera.startFollow(this.player, true, 1, 1, offsetX, offsetY);
+    this.player.setParryWindowSeconds(this.state.rank.parryWindowSeconds);
+
+    this.obstacleSpawnInterval = 0;
+    this.obstacleSpawnAccumulator = 0;
+    this.tokenSpawnAccumulator = 0;
   }
 
   private registerHit(): void {
@@ -582,329 +607,19 @@ export class SurviveScene extends Phaser.Scene {
     if (this.officeBackgrounds.length === 0) return;
     const cameraLeft = this.cameras.main.scrollX * BACKGROUND_SCROLL_FACTOR;
     const backgroundWidth = this.officeBackgrounds[0].displayWidth;
+    const rightmostX = Math.max(...this.officeBackgrounds.map((segment) => segment.x));
     for (const image of this.officeBackgrounds) {
       if (image.x + backgroundWidth / 2 < cameraLeft - backgroundWidth / 2) {
-        const rightmostX = Math.max(...this.officeBackgrounds.map((segment) => segment.x));
         image.x = rightmostX + backgroundWidth;
       }
     }
   }
 
-  // ========== BOSS ENCOUNTER LOGIC ==========
+  private openPauseMenu(): void {
+    if (this.isEnding || this.scene.isActive('Pause')) return;
 
-  private startBossEncounter(): void {
-    this.inBossEncounter = true;
-    this.bossDefeatSequenceActive = false;
-    this.gameplayMusic?.stop();
-    if (!this.bossMusic) {
-      this.bossMusic = this.sound.add('boss', {
-        loop: true,
-        volume: isMusicMuted() ? 0 : 0.5,
-      });
-    }
-    this.bossMusic.play();
-    this.player.setParryWindowSeconds(this.state.rank.parryWindowSeconds * BOSS_PARRY_WINDOW_MULTIPLIER);
-
-    // Pause all spawning
-    this.obstacleSpawnAccumulator = 0;
-    this.obstacleSpawnInterval = 0;
-    this.tokenSpawnAccumulator = 0;
-    this.tokens.clear(true, true);
-    this.floorHazardSpawnAccumulator = 0;
-    this.floorHazardSpawnInterval = 0;
-    this.floorHazards.clear(true, true);
-
-    this.cameras.main.stopFollow();
-
-    // Show the promotion opportunity flash screen
-    const flashImage = this.add.image(
-      this.scale.width / 2,
-      this.scale.height / 2,
-      PROMOTION_OPPORTUNITY_ASSET.key
-    );
-    flashImage.setOrigin(0.5, 0.5);
-    flashImage.setScrollFactor(0);
-    flashImage.setDepth(100);
-    flashImage.setScale(0.3);
-    flashImage.setAlpha(0);
-
-    // Animate flash in
-    this.tweens.add({
-      targets: flashImage,
-      scale: 1,
-      alpha: 1,
-      duration: 300,
-      ease: 'Back.easeOut',
-    });
-
-    // Hold flash, then fade out and spawn boss
-    this.time.delayedCall(1200, () => {
-      this.tweens.add({
-        targets: flashImage,
-        alpha: 0,
-        duration: 300,
-        onComplete: () => flashImage.destroy(),
-      });
-
-      this.spawnBossAndWalkIn();
-    });
-  }
-
-  private spawnBossAndWalkIn(): void {
-    // Create boss at off-screen right, at same level as player
-    const cameraRight = this.cameras.main.scrollX + this.scale.width;
-    const bossCombatX = cameraRight - 320; // Position for combat (right side of screen)
-    const bossSpawnX = cameraRight + 200; // Spawn off-screen right
-    const bossY = this.cameras.main.scrollY + this.scale.height - 340;
-
-    // Boss difficulty is based on the rank we're promoting TO
-    const targetRank = RANKS[Math.min(this.nextRankForBoss, FINAL_RANK_INDEX)];
-    this.boss = new Boss(this, bossSpawnX, bossY, this.nextRankForBoss, targetRank.playerScale);
-    this.bossWasTelegraphing = false;
-    this.lastBossTelegraphCue = -1;
-    this.dimBossBackground();
-
-    // Walk boss in from right (slowly)
-    const body = this.boss.body as Phaser.Physics.Arcade.Body;
-    body.setVelocity(-80, 0); // Move left slowly
-    this.boss.startWalkIn();
-    this.boss.play('boss-walk-in');
-
-    // Stop walking and settle into idle when boss reaches combat position
-    this.time.delayedCall(3500, () => {
-      if (this.boss) {
-        body.setVelocity(0, 0);
-        this.boss.x = bossCombatX;
-        this.boss.finishWalkIn();
-        this.showHealthBar();
-      }
-    });
-  }
-
-  private updateBossEncounter(delta: number): void {
-    if (!this.boss) return;
-
-    this.boss.update(delta);
-    const isTelegraphing = this.boss.getState() === 'telegraph';
-    if (isTelegraphing && !this.bossWasTelegraphing) {
-      this.playBossTelegraphCue();
-    }
-    const isAttacking = this.boss.getState() === 'attack';
-    if (isAttacking) {
-      if (!this.bossWasAttacking) {
-        this.bossProjectileSpawnAccumulator = 0;
-        this.spawnBossProjectile();
-        this.rapidShotsRemaining = this.boss.getAttackPattern() === 'rapid' ? 2 : 0;
-        this.nextBossProjectileDelayMs = this.rapidShotsRemaining > 0
-          ? BOSS_RAPID_SHOT_INTERVAL_MS
-          : Phaser.Math.Between(BOSS_PROJECTILE_MIN_INTERVAL_MS, BOSS_PROJECTILE_MAX_INTERVAL_MS);
-      }
-      this.updateBossAttacks(delta);
-    } else {
-      this.bossProjectileSpawnAccumulator = 0;
-      this.rapidShotsRemaining = 0;
-    }
-    this.bossWasAttacking = isAttacking;
-    this.bossWasTelegraphing = isTelegraphing;
-  }
-
-  private updateBossAttacks(delta: number): void {
-    if (!this.boss) return;
-
-    this.bossProjectileSpawnAccumulator += delta;
-
-    if (this.rapidShotsRemaining > 0) {
-      if (this.bossProjectileSpawnAccumulator >= BOSS_RAPID_SHOT_INTERVAL_MS) {
-        this.bossProjectileSpawnAccumulator -= BOSS_RAPID_SHOT_INTERVAL_MS;
-        this.spawnBossProjectile();
-        this.rapidShotsRemaining -= 1;
-      }
-      return;
-    }
-
-    if (this.bossProjectileSpawnAccumulator >= this.nextBossProjectileDelayMs) {
-      this.bossProjectileSpawnAccumulator -= this.nextBossProjectileDelayMs;
-      this.nextBossProjectileDelayMs = Phaser.Math.Between(
-        BOSS_PROJECTILE_MIN_INTERVAL_MS,
-        BOSS_PROJECTILE_MAX_INTERVAL_MS
-      );
-      this.spawnBossProjectile();
-    }
-  }
-
-  private spawnBossProjectile(): void {
-    if (!this.boss) return;
-
-    const config = this.boss.getConfig();
-    const projectileSpeed = config.projectileSpeed * BOSS_PROJECTILE_SPEED_MULTIPLIER;
-
-    const projectile = new Projectile(
-      this,
-      this.boss.x,
-      this.boss.y - 20,
-      Phaser.Utils.Array.GetRandom(OBSTACLE_TEXTURE_KEYS),
-      this.player.x,
-      this.player.y,
-      projectileSpeed,
-      0,
-      48
-    );
-    this.bossProjectiles.add(projectile);
-    this.playCue('shoot');
-  }
-
-  private handleBossProjectileOverlap(_playerObj: unknown, projectileObj: unknown): void {
-    const projectile = projectileObj as Projectile;
-    if (projectile.isResolved || this.isEnding || !this.inBossEncounter) return;
-
-    if (this.player.isParrying) {
-      projectile.resolveParried();
-      this.playCue('parry');
-      this.burst(projectile.x, projectile.y, 0xffe066);
-      
-      // Damage boss on successful parry
-      if (this.boss && this.boss.takeDamage(1)) {
-        this.updateHealthBar();
-        this.playBossDefeatSequence();
-      } else {
-        this.updateHealthBar();
-      }
-    } else {
-      projectile.resolveHit();
-      this.registerHit();
-    }
-  }
-
-  private clearBossProjectiles(): void {
-    for (const child of this.bossProjectiles.getChildren()) {
-      child.destroy();
-    }
-  }
-
-  private playBossDefeatSequence(): void {
-    if (!this.boss || this.bossDefeatSequenceActive) return;
-    this.bossDefeatSequenceActive = true;
-
-    // Halt the boss state machine and remove every active attack immediately.
-    this.boss.setDefeated();
-    this.clearBossProjectiles();
-
-    // Restore the office lighting across the complete fall sequence.
-    this.restoreBossBackground();
-
-    // Sequence: fall_1 (500ms) -> fall_2 (500ms) -> defeated (1000ms).
-    this.boss.setDefeatTexture('boss-fall1');
-    this.time.delayedCall(1000, () => {
-      if (!this.boss) return;
-
-      this.playCue('villain-defeated');
-      this.boss.setDefeatTexture('boss-fall2');
-      this.time.delayedCall(1000, () => {
-        if (!this.boss) return;
-
-        this.boss.setDefeatTexture('boss-defeated');
-        this.time.delayedCall(1000, () => {
-          this.displayDefeatPromotionToken(() => this.endBossEncounter(true));
-        });
-      });
-    });
-  }
-
-  private displayDefeatPromotionToken(onComplete: () => void): void {
-    this.playCue('victory');
-    const tokenSprite = this.add.sprite(
-      this.scale.width / 2,
-      this.scale.height / 2,
-      PROMOTION_TOKEN_ASSET.key
-    );
-    tokenSprite.setScrollFactor(0);
-    tokenSprite.setDepth(110);
-    tokenSprite.setScale(0);
-    tokenSprite.setAlpha(0);
-
-    this.tweens.add({
-      targets: tokenSprite,
-      scale: 1.2,
-      alpha: 1,
-      duration: 400,
-      ease: 'Back.easeOut',
-    });
-
-    this.tweens.add({
-      targets: tokenSprite,
-      alpha: 0,
-      duration: 500,
-      delay: 1400,
-      onComplete: () => {
-        tokenSprite.destroy();
-        onComplete();
-      },
-    });
-  }
-
-  private endBossEncounter(victory: boolean): void {
-    if (!this.boss) return;
-
-    this.inBossEncounter = false;
-    this.destroyHealthBar();
-
-    if (victory) {
-      // Fade out boss immediately on victory
-      this.tweens.add({
-        targets: this.boss,
-        alpha: 0,
-        duration: 500,
-        onComplete: () => {
-          if (this.boss) {
-            this.boss.destroy();
-          }
-          this.boss = null;
-        },
-      });
-
-      // Reset hit counter to full (0 hits = 5 lives)
-      this.state.rankIndex = this.nextRankForBoss;
-      this.state.resetHits();
-      this.state.resetTokens();
-      eventBus.emit(GameEvents.HitsChanged, this.state.hits);
-
-      // Apply promotion
-      const rank = this.state.rank;
-      this.player.setRankScale(rank.playerScale);
-      this.player.setParryWindowSeconds(rank.parryWindowSeconds);
-
-      eventBus.emit(GameEvents.RankChanged, rank);
-      eventBus.emit(GameEvents.AgeChanged, rank.age);
-      eventBus.emit(GameEvents.TokensChanged, { count: 0, needed: rank.tokensToPromote });
-
-      playSfx('promote');
-      this.burst(this.player.x, this.player.y, 0x7cfc90);
-
-      // Resume normal gameplay
-      this.nextRankForBoss = -1;
-      this.time.delayedCall(600, () => this.resumeNormalGameplay());
-    } else {
-      // Player was defeated during boss encounter - trigger game over
-      this.triggerGameOver();
-    }
-  }
-
-  private resumeNormalGameplay(): void {
-    // Clear all boss projectiles
-    this.clearBossProjectiles();
-    this.bossMusic?.stop();
-    this.startGameplayMusic();
-
-    const camera = this.cameras.main;
-    const offsetX = this.player.x - camera.scrollX - camera.width / 2;
-    const offsetY = this.player.y - camera.scrollY - camera.height / 2;
-    camera.startFollow(this.player, true, 1, 1, offsetX, offsetY);
-    this.player.setParryWindowSeconds(this.state.rank.parryWindowSeconds);
-
-    // Resume spawning (restore previous spawn interval if any)
-    this.obstacleSpawnInterval = 0;
-    this.obstacleSpawnAccumulator = 0;
-    this.tokenSpawnAccumulator = 0;
+    this.scene.pause();
+    this.scene.launch('Pause');
   }
 
   private startGameplayMusic(): void {
@@ -928,20 +643,12 @@ export class SurviveScene extends Phaser.Scene {
     }
   }
 
-  private openPauseMenu(): void {
-    if (this.isEnding || this.scene.isActive('Pause')) return;
-
-    this.scene.pause();
-    this.scene.launch('Pause');
-  }
-
   private stopAllMusic(): void {
     this.gameplayMusic?.destroy();
     this.gameplayMusic = undefined;
     this.gameplaySfx?.destroy();
     this.gameplaySfx = undefined;
-    this.bossMusic?.destroy();
-    this.bossMusic = undefined;
+    this.bossEncounter?.shutdown();
     for (const sounds of this.cuePools.values()) {
       sounds.forEach((sound) => sound.destroy());
     }
@@ -964,126 +671,4 @@ export class SurviveScene extends Phaser.Scene {
     pool[position].play();
     this.cuePoolPositions.set(name, (position + 1) % pool.length);
   }
-
-  private playBossTelegraphCue(): void {
-    let cueIndex = Phaser.Math.Between(0, 4);
-    if (cueIndex === this.lastBossTelegraphCue) {
-      cueIndex = (cueIndex + Phaser.Math.Between(1, 4)) % 5;
-    }
-    this.lastBossTelegraphCue = cueIndex;
-    this.playCue(`villain-${cueIndex + 1}` as GameplayCueName);
-  }
-
-  private dimBossBackground(): void {
-    this.tweens.add({
-      targets: this.officeBackgrounds,
-      alpha: BOSS_BACKGROUND_ALPHA,
-      duration: BOSS_DARKEN_DURATION_MS,
-      ease: 'Linear',
-    });
-  }
-
-  private restoreBossBackground(): void {
-    this.tweens.add({
-      targets: this.officeBackgrounds,
-      alpha: BACKGROUND_NORMAL_ALPHA,
-      duration: 3000,
-      ease: 'Linear',
-    });
-  }
-
-  private showHealthBar(): void {
-    if (!this.boss) return;
-
-    const HEALTH_BAR_WIDTH = 500;
-    const HEALTH_BAR_HEIGHT = 16;
-    const HEALTH_BAR_TOP = 30;
-    const LABEL_GAP = 25;
-    const centerX = this.scale.width / 2;
-
-    // Create container to hold all health bar elements
-    this.healthBarContainer = this.add.container(centerX, HEALTH_BAR_TOP);
-    this.healthBarContainer.setScrollFactor(0); // Fixed to screen
-    this.healthBarContainer.setDepth(105); // Above hud depth
-
-    // Background (dark grey/black)
-    this.healthBarBackground = this.add.rectangle(
-      0,
-      HEALTH_BAR_HEIGHT + LABEL_GAP,
-      HEALTH_BAR_WIDTH,
-      HEALTH_BAR_HEIGHT,
-      0x333333
-    );
-    this.healthBarContainer.add(this.healthBarBackground);
-
-    // Fill (red, depletes from the right while keeping the left edge fixed)
-    this.healthBarFill = this.add.rectangle(
-      -HEALTH_BAR_WIDTH / 2, // Left edge of the bar
-      HEALTH_BAR_HEIGHT + LABEL_GAP,
-      HEALTH_BAR_WIDTH,
-      HEALTH_BAR_HEIGHT,
-      0xff4444
-    );
-    this.healthBarFill.setOrigin(0, 0.5);
-    this.healthBarContainer.add(this.healthBarFill);
-
-    // Label: "Clipboard of Directors" - scale font to fit 100px width
-    let fontSize = 72;
-    this.healthBarLabel = this.add.text(0, 0, 'Clipboard of Directors', {
-      fontSize: `${fontSize}px`,
-      color: '#ffffff',
-      fontStyle: 'bold',
-    });
-    this.healthBarLabel.setOrigin(0.5, 0.5); // Center on container position
-
-    // Dynamically reduce font size until text fits within 100px
-    while (this.healthBarLabel.width > HEALTH_BAR_WIDTH && fontSize > 8) {
-      fontSize -= 1;
-      this.healthBarLabel.setFontSize(fontSize);
-    }
-
-    this.healthBarContainer.add(this.healthBarLabel);
-
-    // Initial update to show correct health
-    this.updateHealthBar();
-  }
-
-  private updateHealthBar(): void {
-    if (!this.boss || !this.healthBarFill) return;
-
-    const maxHealth = this.boss.getMaxHealth();
-    const currentHealth = this.boss.getHealth();
-    const healthRatio = Math.max(0, currentHealth / maxHealth);
-
-    const HEALTH_BAR_WIDTH = 500;
-    const newWidth = HEALTH_BAR_WIDTH * healthRatio;
-
-    // Update fill width while the left edge remains anchored.
-    this.healthBarFill.setDisplaySize(newWidth, 16);
-
-    // Optional: Add pulse/flash effect on damage
-    if (this.healthBarFill.alpha < 1) {
-      // Already in a pulse, don't start another
-      return;
-    }
-
-    this.tweens.add({
-      targets: this.healthBarFill,
-      alpha: 0.5,
-      duration: 100,
-      yoyo: true,
-      ease: 'Quad.easeInOut',
-    });
-  }
-
-  private destroyHealthBar(): void {
-    if (this.healthBarContainer) {
-      this.healthBarContainer.destroy();
-      this.healthBarContainer = null;
-      this.healthBarBackground = null;
-      this.healthBarFill = null;
-      this.healthBarLabel = null;
-    }
-  }
 }
-

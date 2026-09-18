@@ -148,12 +148,12 @@ export class GameOverScene extends Phaser.Scene {
     }
 
     this.add
-      .text(width / 2, height * 0.48, `SCORE  ${this.score.toString().padStart(6, '0')}`, {
-        fontFamily: FONT_FAMILY,
-        fontSize: '20px',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5, 0.4);
+  .text(width / 2, height * 0.48, `SCORE  ${Math.floor(this.score).toString().padStart(6, '0')}`, {
+    fontFamily: FONT_FAMILY,
+    fontSize: '20px',
+    color: '#ffffff',
+  })
+  .setOrigin(0.5, 0.4);
 
     const status = this.add
       .text(width / 2, height * 0.6, 'CHECKING LEADERBOARD...', {
