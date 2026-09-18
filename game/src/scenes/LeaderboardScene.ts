@@ -7,11 +7,29 @@ const PANEL_STROKE = 0xff4444;
 const TEXT_COLOR = 0xffffff;
 const HEADER_COLOR = 0xffd23f;
 const TABLE_COLUMNS = [
-  { label: 'NAME', width: 0.2, maxCharacters: 12 },
-  { label: 'GRADE', width: 0.18, maxCharacters: 10 },
-  { label: 'AGE', width: 0.12, maxCharacters: 4 },
+  { label: 'NAME', width: 0.1, maxCharacters: 3 },
+  { label: 'GRADE', width: 0.3 },
+  { label: 'AGE', width: 0.1, maxCharacters: 2 },
   { label: 'CAUSE OF DEATH', width: 0.5 },
 ] as const;
+
+// Padding/spacing constants — tune these to taste.
+const PANEL_HORIZONTAL_PADDING = 40; // space between panel edge and table content, each side
+const PANEL_TOP_PADDING = 36; // space between panel top edge and header row
+const PANEL_BOTTOM_PADDING = 30; // space between last row's bottom and panel bottom edge
+const HEADER_ROW_GAP = 20; // space between header labels and first data row
+const ROW_SPACING = 16; // vertical gap between data rows
+const COLUMN_GUTTER = 18; // horizontal gap reserved before the next column starts
+const PANEL_MAX_WIDTH = 1200; // wider cap so the panel uses more of the page on large screens
+const PANEL_SIDE_MARGIN = 16; // gap between panel edge and screen edge on small screens
+const MAX_LEADERBOARD_ROWS = 10;
+const MIN_FONT_SIZE = 8;
+const BACK_BUTTON_CLEARANCE = 70; // vertical gap reserved above the Back button
+
+interface TableLayout {
+  objects: Phaser.GameObjects.GameObject[];
+  contentBottom: number;
+}
 
 export class LeaderboardScene extends Phaser.Scene {
   constructor() {
@@ -50,47 +68,46 @@ export class LeaderboardScene extends Phaser.Scene {
     }
   }
 
-  private renderTable(rows: LeaderboardRow[]): void {
-    const { width, height } = this.scale;
-    const panelWidth = Math.min(width - 24, 920);
-    const panelHeight = Math.min(Math.max(220, height - 150), 390);
-    const panelX = width / 2;
-    const panelY = height / 2 + 5;
-    const innerWidth = panelWidth - 32;
-    const fontSize = Math.max(8, Math.min(16, Math.floor(innerWidth / 55)));
-    const rowHeight = Math.max(20, Math.min(30, Math.floor((panelHeight - 48) / 11)));
-    const left = panelX - innerWidth / 2;
+  /** Renders header + rows at a given font size and returns everything created, plus where
+   * content actually ends up — based on real (possibly wrapped) text, not an estimate. */
+  private layoutTable(
+    rows: LeaderboardRow[],
+    fontSize: number,
+    panelX: number,
+    panelTop: number,
+    innerWidth: number,
+    columnStarts: number[]
+  ): TableLayout {
+    const objects: Phaser.GameObjects.GameObject[] = [];
+    const rowHeight = Math.round(fontSize * 1.4) + ROW_SPACING;
 
-    this.add
-      .rectangle(panelX, panelY, panelWidth, panelHeight, PANEL_COLOR, 0.98)
-      .setStrokeStyle(3, PANEL_STROKE);
-
-    const columnStarts: number[] = [];
-    let columnX = left;
-    for (const column of TABLE_COLUMNS) {
-      columnStarts.push(columnX);
-      columnX += innerWidth * column.width;
-    }
-
-    const headerY = panelY - panelHeight / 2 + 18;
+    const headerY = panelTop + PANEL_TOP_PADDING;
     TABLE_COLUMNS.forEach((column, index) => {
-      this.add
+      const text = this.add
         .text(columnStarts[index], headerY, column.label, { fontSize: `${fontSize}px`, color: '#ffd23f', fontStyle: 'bold' })
         .setTint(HEADER_COLOR);
+      objects.push(text);
     });
 
+    let contentBottom = headerY + rowHeight;
+
     if (rows.length === 0) {
-      this.add
-        .text(panelX, panelY + 8, 'NO RECORDS YET', { fontSize: `${fontSize}px`, color: '#ffffff', fontStyle: 'bold' })
+      const rowY = headerY + rowHeight + HEADER_ROW_GAP;
+      const text = this.add
+        .text(panelX, rowY, 'NO RECORDS YET', { fontSize: `${fontSize}px`, color: '#ffffff', fontStyle: 'bold' })
         .setOrigin(0.5)
         .setTint(TEXT_COLOR);
-      return;
+      objects.push(text);
+      contentBottom = rowY + rowHeight;
+      return { objects, contentBottom };
     }
 
-    let rowY = headerY + rowHeight;
-    rows.slice(0, 10).forEach((row) => {
+    let rowY = headerY + rowHeight + HEADER_ROW_GAP;
+    rows.slice(0, MAX_LEADERBOARD_ROWS).forEach((row) => {
       const maxCharacters = TABLE_COLUMNS.map((column) =>
-        'maxCharacters' in column ? Math.min(column.maxCharacters, Math.floor((innerWidth * column.width) / fontSize)) : Number.MAX_SAFE_INTEGER
+        'maxCharacters' in column
+          ? Math.min(column.maxCharacters, Math.floor((innerWidth * column.width - COLUMN_GUTTER) / fontSize))
+          : Number.MAX_SAFE_INTEGER
       );
       const values = [
         truncateWithEllipsis(row.name.toUpperCase(), maxCharacters[0]),
@@ -101,17 +118,60 @@ export class LeaderboardScene extends Phaser.Scene {
 
       let rowBottom = rowY + rowHeight;
       values.forEach((value, columnIndex) => {
+        const columnWidth = innerWidth * TABLE_COLUMNS[columnIndex].width - COLUMN_GUTTER;
         const text = this.add
           .text(columnStarts[columnIndex], rowY, value, {
             fontSize: `${fontSize}px`,
             color: '#ffffff',
             fontStyle: 'bold',
-            ...(columnIndex === 3 ? { wordWrap: { width: innerWidth * TABLE_COLUMNS[3].width } } : {}),
+            ...(columnIndex === 3 ? { wordWrap: { width: columnWidth } } : {}),
           })
           .setTint(TEXT_COLOR);
+        objects.push(text);
         rowBottom = Math.max(rowBottom, rowY + text.displayHeight);
       });
-      rowY = rowBottom + 6;
+      rowY = rowBottom + ROW_SPACING;
+      contentBottom = rowBottom;
     });
+
+    return { objects, contentBottom };
+  }
+
+  private renderTable(rows: LeaderboardRow[]): void {
+    const { width, height } = this.scale;
+    const panelWidth = Math.min(width - PANEL_SIDE_MARGIN * 2, PANEL_MAX_WIDTH);
+    const panelX = width / 2;
+    const panelTop = Math.max(150, height * 0.22);
+    const innerWidth = panelWidth - PANEL_HORIZONTAL_PADDING * 2;
+    const availableHeight = height - 50 - BACK_BUTTON_CLEARANCE - panelTop;
+    const left = panelX - innerWidth / 2;
+
+    const columnStarts: number[] = [];
+    let columnX = left;
+    for (const column of TABLE_COLUMNS) {
+      columnStarts.push(columnX);
+      columnX += innerWidth * column.width;
+    }
+
+    let fontSize = Math.max(MIN_FONT_SIZE, Math.min(16, Math.floor(innerWidth / 55)));
+    let layout = this.layoutTable(rows, fontSize, panelX, panelTop, innerWidth, columnStarts);
+
+    // Only shrink if the *real* rendered content actually overflows the available space —
+    // never assume worst-case wrapping up front, so normal-length data keeps full-size text.
+    while (
+      layout.contentBottom - panelTop + PANEL_BOTTOM_PADDING > availableHeight &&
+      fontSize > MIN_FONT_SIZE
+    ) {
+      layout.objects.forEach((object) => object.destroy());
+      fontSize -= 1;
+      layout = this.layoutTable(rows, fontSize, panelX, panelTop, innerWidth, columnStarts);
+    }
+
+    const panelHeight = layout.contentBottom - panelTop + PANEL_BOTTOM_PADDING;
+    const panelY = panelTop + panelHeight / 2;
+    this.add
+      .rectangle(panelX, panelY, panelWidth, panelHeight, PANEL_COLOR, 0.98)
+      .setStrokeStyle(3, PANEL_STROKE)
+      .setDepth(-1);
   }
 }

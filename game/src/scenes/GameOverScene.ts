@@ -26,6 +26,9 @@ import { getNextGameOverCause } from './gameOverMessages';
 export interface ScoreEntry {
   initials: string;
   score: number;
+  age: number;
+  rank: string;
+  causeOfDeath: string;
 }
 
 export interface LeaderboardService {
@@ -56,7 +59,15 @@ export function createLeaderboardService(): LeaderboardService {
       }
 
       const payload = (await response.json()) as Array<
-        | { score?: number | string; playerName?: string; initials?: string; name?: string }
+        | {
+            score?: number | string;
+            playerName?: string;
+            initials?: string;
+            name?: string;
+            age?: number | string;
+            rank?: string;
+            causeOfDeath?: string;
+          }
         | undefined
       >;
 
@@ -65,9 +76,13 @@ export function createLeaderboardService(): LeaderboardService {
         .map((entry) => {
           const rawInitials = entry.initials ?? entry.playerName ?? entry.name ?? 'AAA';
           const scoreValue = typeof entry.score === 'number' ? entry.score : Number(entry.score ?? 0);
+          const ageValue = typeof entry.age === 'number' ? entry.age : Number(entry.age ?? 0);
           return {
             initials: String(rawInitials).slice(0, 3).toUpperCase().padEnd(3, 'A'),
             score: Number.isFinite(scoreValue) ? scoreValue : 0,
+            age: Number.isFinite(ageValue) ? ageValue : 0,
+            rank: String(entry.rank ?? 'Unranked'),
+            causeOfDeath: String(entry.causeOfDeath ?? 'Unknown'),
           };
         })
         .sort((a, b) => a.score - b.score);
@@ -79,9 +94,9 @@ export function createLeaderboardService(): LeaderboardService {
         body: JSON.stringify({
           playerName: entry.initials,
           score: Math.floor(entry.score),
-          age: 0,
-          rank: 'Unranked',
-          causeOfDeath: 'Unknown',
+          age: entry.age,
+          rank: entry.rank,
+          causeOfDeath: entry.causeOfDeath,
         }),
       });
 
@@ -98,7 +113,6 @@ export class GameOverScene extends Phaser.Scene {
   private rankLabel = 'Grad Dev';
   private causeOfDeath = 'died in a tragic office accident';
   private leaderboardService!: LeaderboardService;
-
   private initials: string[] = ['A', 'A', 'A'];
   private activeSlot = 0;
   private slotTexts: Phaser.GameObjects.Text[] = [];
@@ -127,7 +141,7 @@ export class GameOverScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x18191f);
 
     const stamp = this.add.image(width / 2, height * 0.28, 'gameOverStamp').setOrigin(0.5, 0.3);
-    stamp.setScale(0.8);
+    stamp.setScale(0.6);
     const maxStampWidth = width * 0.55;
     if (stamp.width > maxStampWidth) {
       stamp.setScale(maxStampWidth / stamp.width);
@@ -163,11 +177,11 @@ export class GameOverScene extends Phaser.Scene {
     this.add
       .text(width / 2, height * 0.58, `You ${this.causeOfDeath} at ${this.age} as a ${this.rankLabel}`, {
         fontFamily: FONT_FAMILY,
-        fontSize: '18px',
-        color: '#ffffff',
+        fontSize: '22px',
+        color: '#db170d',
         wordWrap: { width: width * 0.8 },
       })
-      .setOrigin(0.5, 0.5);
+      .setOrigin(0.5, 0.3);
 
     if (qualifies) {
       this.buildInitialsEntry(width, height);
@@ -274,6 +288,9 @@ export class GameOverScene extends Phaser.Scene {
       await this.leaderboardService.submitScore({
         initials: this.initials.join(''),
         score: this.score,
+        age: this.age,
+        rank: this.rankLabel,
+        causeOfDeath: this.causeOfDeath,
       });
     } catch (error) {
       console.error('Failed to submit score', error);
