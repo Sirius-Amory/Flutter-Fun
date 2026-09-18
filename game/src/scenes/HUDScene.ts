@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { eventBus, GameEvents } from '../events';
-import { GameState, MAX_HITS } from '../state/GameState';
+import { GameState } from '../state/GameState';
 import type { RankConfig } from '../data/rankConfig';
 
 interface TokensChangedPayload {
@@ -60,32 +60,23 @@ export class HUDScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(100);
     this.updateHighlightsBar(state.tokens, state.rank.tokensToPromote);
-    const pipSpacing = 30;
-    const firstPipX = this.scale.width - 36 - (MAX_HITS - 1) * pipSpacing;
-    this.setbackPips = Array.from({ length: MAX_HITS }, (_, index) =>
-      this.add
-        .image(firstPipX + index * pipSpacing, 66, 'hud-icon-setback')
-        .setDisplaySize(28, 28)
-        .setScrollFactor(0)
-        .setDepth(100)
-    );
-    this.add
-      .rectangle(firstPipX - 16, 66, (MAX_HITS - 1) * pipSpacing + 32, 40, 0x182536)
-      .setOrigin(0, 0.5)
-      .setStrokeStyle(2, 0xff4444)
-      .setScrollFactor(0)
-      .setDepth(99);
+    this.createSetbackPips(state.maxHits);
     this.updateSetbackPips(state.hits);
 
     const onAgeChanged = (age: number) => this.ageText.setText(`${age} years old`);
     const onRankChanged = (rank: RankConfig) => this.rankText.setText(`${rank.id} - ${rank.label}`);
     const onTokensChanged = ({ count, needed }: TokensChangedPayload) => this.updateHighlightsBar(count, needed);
     const onHitsChanged = (hits: number) => this.updateSetbackPips(hits);
+    const onMaxHitsChanged = (maxHits: number) => {
+      this.createSetbackPips(maxHits);
+      this.updateSetbackPips(state.hits);
+    };
 
     eventBus.on(GameEvents.AgeChanged, onAgeChanged);
     eventBus.on(GameEvents.RankChanged, onRankChanged);
     eventBus.on(GameEvents.TokensChanged, onTokensChanged);
     eventBus.on(GameEvents.HitsChanged, onHitsChanged);
+    eventBus.on(GameEvents.MaxHitsChanged, onMaxHitsChanged);
 
     // eventBus outlives this scene instance, so listeners must be removed explicitly.
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -93,11 +84,29 @@ export class HUDScene extends Phaser.Scene {
       eventBus.off(GameEvents.RankChanged, onRankChanged);
       eventBus.off(GameEvents.TokensChanged, onTokensChanged);
       eventBus.off(GameEvents.HitsChanged, onHitsChanged);
+      eventBus.off(GameEvents.MaxHitsChanged, onMaxHitsChanged);
     });
   }
 
+  private createSetbackPips(maxHits: number): void {
+    this.setbackPips.forEach((pip) => pip.destroy());
+    const pipSpacing = 50;
+    const firstPipX = this.scale.width - 36 - (maxHits - 1) * pipSpacing;
+    this.setbackPips = Array.from({ length: maxHits }, (_, index) =>
+      this.add
+        .image(firstPipX + index * pipSpacing, 66, 'hud-icon-setback')
+        .setDisplaySize(42, 42)
+        .setScrollFactor(0)
+        .setDepth(100)
+    );
+  }
+
   private updateSetbackPips(hits: number): void {
-    this.setbackPips.forEach((pip, index) => pip.setAlpha(index < hits ? 0.3 : 1));
+    this.setbackPips.forEach((pip, index) => {
+      const reverseIndex = this.setbackPips.length - 1 - index;
+      const isSpent = reverseIndex < hits;
+      pip.setAlpha(isSpent ? 0.3 : 1);
+    });
   }
 
   private updateHighlightsBar(count: number, needed: number): void {

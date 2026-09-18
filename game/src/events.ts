@@ -7,4 +7,5 @@ export const GameEvents = {
   RankChanged: 'rank-changed',
   TokensChanged: 'tokens-changed',
   HitsChanged: 'hits-changed',
+  MaxHitsChanged: 'max-hits-changed',
 } as const;

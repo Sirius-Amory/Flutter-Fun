@@ -11,6 +11,7 @@ const KEYS = {
   rankIndex: 'rankIndex',
   tokens: 'tokens',
   hits: 'hits',
+  maxHits: 'maxHits',
   characterId: 'characterId',
 } as const;
 
@@ -28,6 +29,7 @@ export class GameState {
     this.store.set(KEYS.rankIndex, 0);
     this.store.set(KEYS.tokens, 0);
     this.store.set(KEYS.hits, 0);
+    this.store.set(KEYS.maxHits, MAX_HITS);
   }
 
   get distance(): number {
@@ -79,8 +81,21 @@ export class GameState {
     return (this.store.get(KEYS.hits) as number | undefined) ?? 0;
   }
 
+  get maxHits(): number {
+    return Math.max(MAX_HITS, (this.store.get(KEYS.maxHits) as number | undefined) ?? MAX_HITS);
+  }
+
   registerHit(): number {
-    const next = Math.min(MAX_HITS, this.hits + 1);
+    const next = Math.min(this.maxHits, this.hits + 1);
+    this.store.set(KEYS.hits, next);
+    return next;
+  }
+
+  heal(): number {
+    const next = this.hits > 0 ? this.hits - 1 : 0;
+    if (this.hits === 0) {
+      this.store.set(KEYS.maxHits, this.maxHits + 1);
+    }
     this.store.set(KEYS.hits, next);
     return next;
   }
@@ -90,7 +105,7 @@ export class GameState {
   }
 
   get isDefeated(): boolean {
-    return this.hits >= MAX_HITS;
+    return this.hits >= this.maxHits;
   }
 
   // Not touched by reset() - a chosen character is a preference, not run progress.

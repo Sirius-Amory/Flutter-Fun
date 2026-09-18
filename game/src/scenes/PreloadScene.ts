@@ -17,6 +17,7 @@ import villain5Sfx from '../assets/sounds/villain-5.mp3';
 import villainDefeatedSfx from '../assets/sounds/villain-defeated.mp3';
 import {
   BACKGROUND_ASSETS,
+  FLOOR_HAZARD_ASSETS,
   OBSTACLE_ASSETS,
   PROMOTION_OPPORTUNITY_ASSET,
   PROMOTION_TOKEN_ASSET,
@@ -47,6 +48,7 @@ export class PreloadScene extends Phaser.Scene {
       PROMOTION_TOKEN_ASSET,
       PROMOTION_OPPORTUNITY_ASSET,
       ...OBSTACLE_ASSETS,
+      ...FLOOR_HAZARD_ASSETS,
     ]) {
       this.load.image(asset.key, asset.source);
     }
@@ -61,6 +63,7 @@ export class PreloadScene extends Phaser.Scene {
     this.load.image('mainmenu-proj2', proj2);
     this.load.image('icon-mute', 'assets/main-menu/mute.png');
     this.load.image('icon-unmute', 'assets/main-menu/unmute.png');
+    this.load.image('gameOverStamp', 'assets/game-over/game-over.png');
 
     // HUD icons
     this.load.image('hud-icon-age', 'assets/hud/icons/age.png');

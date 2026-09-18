@@ -35,6 +35,7 @@ export class MainMenuScene extends Phaser.Scene {
     this.scene.stop('Survive');
     this.scene.stop('HUD');
     this.scene.stop('Pause');
+    this.sound.mute = isMusicMuted();
 
     // Resume audio context if available (required for browser autoplay policies)
     const soundManager = this.sound as any;
@@ -227,6 +228,7 @@ export class MainMenuScene extends Phaser.Scene {
 
   private toggleMenuMusic(): void {
     const musicMuted = toggleMusic();
+    this.sound.mute = musicMuted;
     (this.mainMenuSound as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound | undefined)?.setVolume(
       musicMuted ? 0 : MENU_MUSIC_VOLUME
     );

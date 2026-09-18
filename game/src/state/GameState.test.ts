@@ -54,6 +54,28 @@ describe('GameState', () => {
     expect(state.tokens).toBe(RANKS[0].tokensToPromote);
   });
 
+  it('restores health without dropping below zero', () => {
+    state.registerHit();
+    state.registerHit();
+    state.heal();
+
+    expect(state.hits).toBe(1);
+    state.heal();
+    expect(state.hits).toBe(0);
+    state.heal();
+    expect(state.hits).toBe(0);
+  });
+
+  it('adds an extra life when healing at full health', () => {
+    expect(state.maxHits).toBe(MAX_HITS);
+
+    state.heal();
+
+    expect(state.hits).toBe(0);
+    expect(state.maxHits).toBe(MAX_HITS + 1);
+    expect(state.isDefeated).toBe(false);
+  });
+
   it('derives age and rank from rankIndex', () => {
     state.rankIndex = 2;
     expect(state.rank).toBe(RANKS[2]);
@@ -66,7 +88,7 @@ describe('GameState', () => {
     expect(state.isRetired).toBe(true);
   });
 
-  it('never raises hits above MAX_HITS and reports defeat', () => {
+  it('never raises hits above the current max health and reports defeat', () => {
     for (let i = 0; i < MAX_HITS + 2; i += 1) {
       state.registerHit();
     }

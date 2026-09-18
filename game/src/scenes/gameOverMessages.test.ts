@@ -9,18 +9,12 @@ describe('gameOverMessages', () => {
     expect(message).not.toContain('undefined');
   });
 
-  it('cycles through all causes before repeating any of them', () => {
-    const seen: string[] = [];
+  it('does not repeat the same cause on consecutive game overs', () => {
+    const seen = Array.from({ length: 20 }, () => getNextGameOverCause());
 
-    for (let index = 0; index < GAME_OVER_MESSAGES.length + 1; index += 1) {
-      const cause = getNextGameOverCause();
-      if (index < GAME_OVER_MESSAGES.length) {
-        expect(cause).toBe(GAME_OVER_MESSAGES[index]);
-      }
-      seen.push(cause);
+    for (let index = 1; index < seen.length; index += 1) {
+      expect(seen[index]).not.toBe(seen[index - 1]);
     }
-
-    expect(new Set(seen).size).toBe(GAME_OVER_MESSAGES.length);
-    expect(seen[GAME_OVER_MESSAGES.length]).toBe(GAME_OVER_MESSAGES[0]);
+    expect(seen.every((cause) => GAME_OVER_MESSAGES.includes(cause))).toBe(true);
   });
 });

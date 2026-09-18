@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { Player } from '../entities/Player';
 import { Projectile } from '../entities/Projectile';
+import { FloorHazard } from '../entities/FloorHazard';
 import { Boss } from '../entities/Boss';
 import { COLLECTIBLE_RENDER_SCALE, Collectible } from '../entities/Collectible';
 import {
@@ -14,6 +15,7 @@ import {
 import { PLAYER_HEIGHT } from '../data/movementTuning';
 import {
   OBSTACLE_TEXTURE_KEYS,
+  FLOOR_HAZARD_TEXTURE_KEYS,
   PROMOTION_OPPORTUNITY_ASSET,
   PROMOTION_TOKEN_ASSET,
   REGULAR_TOKEN_TEXTURE_KEYS,
@@ -22,7 +24,7 @@ import { GameState } from '../state/GameState';
 import { eventBus, GameEvents } from '../events';
 import { playSfx } from '../audio/SfxManager';
 import { isMusicMuted } from '../audio/MusicManager';
-import { createButton } from '../ui/createButton';
+import { createLeaderboardService } from './GameOverScene';
 
 const WORLD_HEIGHT = 900;
 const WORLD_TOP_Y = 0;
@@ -65,17 +67,22 @@ const GAMEPLAY_CUE_NAMES = [
 ] as const;
 type GameplayCueName = (typeof GAMEPLAY_CUE_NAMES)[number];
 const CUE_POOL_SIZE = 5;
+const FLOOR_HAZARD_SPAWN_RATE = 1.35;
+const FLOOR_HAZARD_CLEANUP_MARGIN = 160;
 
 export class SurviveScene extends Phaser.Scene {
   private player!: Player;
   private obstacles!: Phaser.Physics.Arcade.Group;
   private tokens!: Phaser.Physics.Arcade.Group;
   private bossProjectiles!: Phaser.Physics.Arcade.Group;
+  private floorHazards!: Phaser.Physics.Arcade.Group;
   private state!: GameState;
   private obstacleSpawnAccumulator = 0;
   private obstacleSpawnInterval = 0;
   private tokenSpawnAccumulator = 0;
   private tokenTextureQueue: string[] = [];
+  private floorHazardSpawnAccumulator = 0;
+  private floorHazardSpawnInterval = 0;
   private isEnding = false;
   private officeBackgrounds: Phaser.GameObjects.Image[] = [];
   private gameplayMusic?: Phaser.Sound.BaseSound;
@@ -114,6 +121,8 @@ export class SurviveScene extends Phaser.Scene {
     this.obstacleSpawnInterval = 0;
     this.tokenSpawnAccumulator = 0;
     this.tokenTextureQueue = [];
+    this.floorHazardSpawnAccumulator = 0;
+    this.floorHazardSpawnInterval = 0;
     this.inBossEncounter = false;
     this.nextRankForBoss = -1;
     this.boss = null;
@@ -161,20 +170,17 @@ export class SurviveScene extends Phaser.Scene {
       -this.scale.width * (0.5 - PLAYER_CAMERA_SCREEN_RATIO),
       -140
     );
-    const quitButton = createButton(this, this.scale.width - 70, 72, 'Quit', () => {
-      this.scene.stop('HUD');
-      this.scene.start('MainMenu');
-    });
-    quitButton.setScrollFactor(0).setDepth(110);
 
     this.obstacles = this.physics.add.group({ allowGravity: false });
     this.tokens = this.physics.add.group({ allowGravity: false });
     this.bossProjectiles = this.physics.add.group({ allowGravity: false });
+    this.floorHazards = this.physics.add.group({ allowGravity: false, immovable: true });
 
     this.physics.add.collider(this.player, ground);
     this.physics.add.overlap(this.player, this.obstacles, this.handleObstacleOverlap, undefined, this);
     this.physics.add.overlap(this.player, this.tokens, this.handleTokenOverlap, undefined, this);
     this.physics.add.overlap(this.player, this.bossProjectiles, this.handleBossProjectileOverlap, undefined, this);
+    this.physics.add.overlap(this.player, this.floorHazards, this.handleFloorHazardOverlap, undefined, this);
 
     this.scene.launch('HUD');
 
@@ -245,12 +251,33 @@ export class SurviveScene extends Phaser.Scene {
     } else {
       this.tokenSpawnAccumulator = 0;
     }
+
+    this.floorHazardSpawnAccumulator += delta;
+    if (this.floorHazardSpawnInterval === 0) {
+      this.floorHazardSpawnInterval = Phaser.Math.Between(
+        Math.round(rank.obstacleSpawnMinMs * FLOOR_HAZARD_SPAWN_RATE),
+        Math.round(rank.obstacleSpawnMaxMs * FLOOR_HAZARD_SPAWN_RATE)
+      );
+    }
+    if (this.floorHazardSpawnAccumulator >= this.floorHazardSpawnInterval) {
+      this.floorHazardSpawnAccumulator = 0;
+      this.floorHazardSpawnInterval = 0;
+      this.spawnFloorHazard();
+    }
   }
 
   private spawnObstacle(rank: RankConfig): void {
     const { x, y } = this.findSpawnPosition(rank, 'obstacle');
     const textureKey = Phaser.Utils.Array.GetRandom(OBSTACLE_TEXTURE_KEYS);
     this.obstacles.add(new Projectile(this, x, y, textureKey, this.player.x, this.player.y, rank.obstacleSpeed * REGULAR_PROJECTILE_SPEED_MULTIPLIER, rank.obstacleRotationSpeed, rank.badgeDisplaySize));
+  }
+
+  private spawnFloorHazard(): void {
+    const cameraRight = this.cameras.main.scrollX + this.scale.width;
+    const x = cameraRight + Phaser.Math.Between(SPAWN_MARGIN_X, SPAWN_MARGIN_X + 320);
+    const textureKey = Phaser.Utils.Array.GetRandom(FLOOR_HAZARD_TEXTURE_KEYS);
+    const hazard = new FloorHazard(this, x, GROUND_Y - 4, textureKey);
+    this.floorHazards.add(hazard);
   }
 
   private spawnToken(rank: RankConfig): void {
@@ -351,6 +378,11 @@ export class SurviveScene extends Phaser.Scene {
         token.destroy();
       }
     }
+    const floorLeftEdge = this.cameras.main.scrollX - FLOOR_HAZARD_CLEANUP_MARGIN;
+    for (const child of this.floorHazards.getChildren()) {
+      const hazard = child as FloorHazard;
+      if (hazard.x < floorLeftEdge) hazard.destroy();
+    }
   }
 
   private handleObstacleOverlap(_playerObj: unknown, obstacleObj: unknown): void {
@@ -368,15 +400,63 @@ export class SurviveScene extends Phaser.Scene {
     }
   }
 
+  private handleFloorHazardOverlap(_playerObj: unknown, hazardObj: unknown): void {
+    const hazard = hazardObj as FloorHazard;
+    if (!hazard.active || this.isEnding) return;
+
+    hazard.destroy();
+    this.registerHit();
+  }
+
   private handleTokenOverlap(_playerObj: unknown, tokenObj: unknown): void {
     const token = tokenObj as Collectible;
     this.tokens.remove(token, false, false);
     const { x, y } = token;
 
     token.collect(() => {
+      if (token.texture.key === 'token-health') {
+        this.healPlayer(x, y);
+        return;
+      }
       this.awardToken();
     });
-    this.burst(x, y, 0xffd23f);
+    this.burst(x, y, token.texture.key === 'token-health' ? 0x6ef3a6 : 0xffd23f);
+  }
+
+  private healPlayer(x: number, y: number): number {
+    if (this.isEnding || this.state.isRetired) return this.state.hits;
+
+    this.playCue('collect');
+    const previousMaxHits = this.state.maxHits;
+    const hits = this.state.heal();
+    if (this.state.maxHits > previousMaxHits) {
+      eventBus.emit(GameEvents.MaxHitsChanged, this.state.maxHits);
+    }
+    eventBus.emit(GameEvents.HitsChanged, hits);
+    this.showHealthGain(x, y);
+    return hits;
+  }
+
+  private showHealthGain(x: number, y: number): void {
+    const gainText = this.add
+      .text(x, y, '+1', {
+        fontSize: '140px',
+        color: '#6ef3a6',
+        fontStyle: 'bold',
+        stroke: '#07101c',
+        strokeThickness: 4,
+      })
+      .setOrigin(0.5)
+      .setDepth(20);
+
+    this.tweens.add({
+      targets: gainText,
+      y: y - 70,
+      alpha: 0,
+      duration: 900,
+      ease: 'Cubic.easeOut',
+      onComplete: () => gainText.destroy(),
+    });
   }
 
   private awardToken(): number {
@@ -451,7 +531,12 @@ export class SurviveScene extends Phaser.Scene {
     this.time.delayedCall(500, () => {
       playSfx('gameOver');
       this.scene.stop('HUD');
-      this.scene.start('GameOver', { age: this.state.age, rankId: this.state.rank.label, score: this.state.distance });
+      this.scene.start('GameOverScene', {
+        age: this.state.age,
+        rankId: this.state.rank.label,
+        score: this.state.distance,
+        leaderboardService: createLeaderboardService(),
+      });
     });
   }
 
@@ -518,6 +603,9 @@ export class SurviveScene extends Phaser.Scene {
     this.obstacleSpawnInterval = 0;
     this.tokenSpawnAccumulator = 0;
     this.tokens.clear(true, true);
+    this.floorHazardSpawnAccumulator = 0;
+    this.floorHazardSpawnInterval = 0;
+    this.floorHazards.clear(true, true);
 
     this.cameras.main.stopFollow();
 

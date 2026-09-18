@@ -20,6 +20,16 @@ import background3 from '../assets/background/bg_3.jpg';
 import background4 from '../assets/background/bg_4.jpg';
 import background5 from '../assets/background/bg_5.jpg';
 
+export const FLOOR_HAZARD_ASSETS = [
+  { key: 'floor-boxes', source: 'assets/floor-sprites/boxes.png' },
+  { key: 'floor-cables', source: 'assets/floor-sprites/cables.png' },
+  { key: 'floor-chairs', source: 'assets/floor-sprites/chairs.png' },
+  { key: 'floor-copier', source: 'assets/floor-sprites/copier.png' },
+  { key: 'floor-mugs', source: 'assets/floor-sprites/mugs.png' },
+  { key: 'floor-pins', source: 'assets/floor-sprites/pins.png' },
+  { key: 'floor-watercooler', source: 'assets/floor-sprites/watercooler.png' },
+] as const;
+
 export const REGULAR_TOKEN_ASSETS = [
   { key: 'token-pay-rise', source: payRise },
   { key: 'token-certificate', source: cert },
@@ -28,6 +38,7 @@ export const REGULAR_TOKEN_ASSETS = [
   { key: 'token-new-skill', source: newSkill },
   { key: 'token-fun-project', source: funProject },
   { key: 'token-good-rating', source: goodRating },
+  { key: 'token-health', source: 'assets/tokens/health.png' },
 ] as const;
 
 export const PROMOTION_TOKEN_ASSET = { key: 'token-promotion', source: promotion } as const;
@@ -46,4 +57,5 @@ export const OBSTACLE_ASSETS = [
 
 export const REGULAR_TOKEN_TEXTURE_KEYS = REGULAR_TOKEN_ASSETS.map((asset) => asset.key);
 export const OBSTACLE_TEXTURE_KEYS = OBSTACLE_ASSETS.map((asset) => asset.key);
+export const FLOOR_HAZARD_TEXTURE_KEYS = FLOOR_HAZARD_ASSETS.map((asset) => asset.key);
 export const BACKGROUND_ASSETS = [background1, background2, background3, background4, background5];
