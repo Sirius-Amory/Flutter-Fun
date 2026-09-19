@@ -1,82 +1,84 @@
-import femaleAdventurerIdle from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_idle.png';
-import femaleAdventurerWalk1 from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_walk1.png';
-import femaleAdventurerWalk2 from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_walk2.png';
-import femaleAdventurerJump from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_jump.png';
-import femaleAdventurerFall from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_fall.png';
-import femaleAdventurerKick from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_kick.png';
-import femaleAdventurerHurt from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_hurt.png';
-import femaleAdventurerDuck from '../assets/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_duck.png';
+const ASSET_PREFIX = '/assets';
 
-import femalePersonIdle from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_idle.png';
-import femalePersonWalk1 from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_walk1.png';
-import femalePersonWalk2 from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_walk2.png';
-import femalePersonJump from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_jump.png';
-import femalePersonFall from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_fall.png';
-import femalePersonKick from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_kick.png';
-import femalePersonHurt from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_hurt.png';
-import femalePersonDuck from '../assets/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_duck.png';
+const femaleAdventurerIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_idle.png`;
+const femaleAdventurerWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_walk1.png`;
+const femaleAdventurerWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_walk2.png`;
+const femaleAdventurerJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_jump.png`;
+const femaleAdventurerFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_fall.png`;
+const femaleAdventurerKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_kick.png`;
+const femaleAdventurerHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_hurt.png`;
+const femaleAdventurerDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female adventurer/Poses/character_femaleAdventurer_duck.png`;
 
-import maleAdventurerIdle from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_idle.png';
-import maleAdventurerWalk1 from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_walk1.png';
-import maleAdventurerWalk2 from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_walk2.png';
-import maleAdventurerJump from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_jump.png';
-import maleAdventurerFall from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_fall.png';
-import maleAdventurerKick from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_kick.png';
-import maleAdventurerHurt from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_hurt.png';
-import maleAdventurerDuck from '../assets/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_duck.png';
+const femalePersonIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_idle.png`;
+const femalePersonWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_walk1.png`;
+const femalePersonWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_walk2.png`;
+const femalePersonJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_jump.png`;
+const femalePersonFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_fall.png`;
+const femalePersonKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_kick.png`;
+const femalePersonHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_hurt.png`;
+const femalePersonDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Female person/Poses/character_femalePerson_duck.png`;
 
-import malePersonIdle from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_idle.png';
-import malePersonWalk1 from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_walk1.png';
-import malePersonWalk2 from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_walk2.png';
-import malePersonJump from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_jump.png';
-import malePersonFall from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_fall.png';
-import malePersonKick from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_kick.png';
-import malePersonHurt from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_hurt.png';
-import malePersonDuck from '../assets/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_duck.png';
+const maleAdventurerIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_idle.png`;
+const maleAdventurerWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_walk1.png`;
+const maleAdventurerWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_walk2.png`;
+const maleAdventurerJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_jump.png`;
+const maleAdventurerFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_fall.png`;
+const maleAdventurerKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_kick.png`;
+const maleAdventurerHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_hurt.png`;
+const maleAdventurerDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male adventurer/Poses/character_maleAdventurer_duck.png`;
 
-import playerIdle from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_idle.png';
-import playerWalk1 from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_walk1.png';
-import playerWalk2 from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_walk2.png';
-import playerJump from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_jump.png';
-import playerFall from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_fall.png';
-import playerKick from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_kick.png';
-import playerHurt from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_hurt.png';
-import playerDuck from '../assets/kenney_platformer-characters/PNG/Player/Poses/player_duck.png';
+const malePersonIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_idle.png`;
+const malePersonWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_walk1.png`;
+const malePersonWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_walk2.png`;
+const malePersonJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_jump.png`;
+const malePersonFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_fall.png`;
+const malePersonKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_kick.png`;
+const malePersonHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_hurt.png`;
+const malePersonDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Male person/Poses/character_malePerson_duck.png`;
 
-import soldierIdle from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_idle.png';
-import soldierWalk1 from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_walk1.png';
-import soldierWalk2 from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_walk2.png';
-import soldierJump from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_jump.png';
-import soldierFall from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_fall.png';
-import soldierKick from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_kick.png';
-import soldierHurt from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_hurt.png';
-import soldierDuck from '../assets/kenney_platformer-characters/PNG/Soldier/Poses/soldier_duck.png';
+const playerIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_idle.png`;
+const playerWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_walk1.png`;
+const playerWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_walk2.png`;
+const playerJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_jump.png`;
+const playerFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_fall.png`;
+const playerKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_kick.png`;
+const playerHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_hurt.png`;
+const playerDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Player/Poses/player_duck.png`;
 
-import robotIdle from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_idle.png';
-import robotWalk1 from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_walk1.png';
-import robotWalk2 from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_walk2.png';
-import robotJump from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_jump.png';
-import robotFall from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_fall.png';
-import robotKick from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_kick.png';
-import robotHurt from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_hurt.png';
-import robotDuck from '../assets/kenney_platformer-characters/PNG/Robot/Poses/character_robot_duck.png';
+const soldierIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_idle.png`;
+const soldierWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_walk1.png`;
+const soldierWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_walk2.png`;
+const soldierJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_jump.png`;
+const soldierFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_fall.png`;
+const soldierKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_kick.png`;
+const soldierHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_hurt.png`;
+const soldierDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Soldier/Poses/soldier_duck.png`;
 
-import zombieIdle from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_idle.png';
-import zombieWalk1 from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_walk1.png';
-import zombieWalk2 from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_walk2.png';
-import zombieJump from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_jump.png';
-import zombieFall from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_fall.png';
-import zombieKick from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_kick.png';
-import zombieHurt from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_hurt.png';
-import zombieDuck from '../assets/kenney_platformer-characters/PNG/Zombie/Poses/zombie_duck.png';
+const robotIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_idle.png`;
+const robotWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_walk1.png`;
+const robotWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_walk2.png`;
+const robotJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_jump.png`;
+const robotFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_fall.png`;
+const robotKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_kick.png`;
+const robotHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_hurt.png`;
+const robotDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Robot/Poses/character_robot_duck.png`;
 
-import zombie2Idle from '../assets/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_idle.png';
-import zombie2Walk1 from '../assets/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_walk1.png';
-import zombie2Walk2 from '../assets/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_walk2.png';
-import zombie2Jump from '../assets/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_jump.png';
-import zombie2Kick from '../assets/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_kick.png';
-import zombie2Hurt from '../assets/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_hurt.png';
-import zombie2Slide from '../assets/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_slide.png';
+const zombieIdle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_idle.png`;
+const zombieWalk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_walk1.png`;
+const zombieWalk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_walk2.png`;
+const zombieJump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_jump.png`;
+const zombieFall = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_fall.png`;
+const zombieKick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_kick.png`;
+const zombieHurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_hurt.png`;
+const zombieDuck = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie/Poses/zombie_duck.png`;
+
+const zombie2Idle = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_idle.png`;
+const zombie2Walk1 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_walk1.png`;
+const zombie2Walk2 = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_walk2.png`;
+const zombie2Jump = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_jump.png`;
+const zombie2Kick = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_kick.png`;
+const zombie2Hurt = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_hurt.png`;
+const zombie2Slide = `${ASSET_PREFIX}/kenney_platformer-characters/PNG/Zombie 2/Poses/character_zombie_slide.png`;
 
 export interface CharacterDef {
   id: string;
@@ -90,7 +92,7 @@ export interface CharacterDef {
   duck: string;
 }
 
-// Kenney "Platformer Characters" (CC0) - see game/src/assets/kenney_platformer-characters/License.txt.
+// Kenney "Platformer Characters" (CC0) - see game/public/assets/kenney_platformer-characters/License.txt.
 export const CHARACTERS: CharacterDef[] = [
   {
     id: 'male-adventurer',

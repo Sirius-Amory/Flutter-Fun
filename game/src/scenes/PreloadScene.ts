@@ -1,20 +1,22 @@
 import Phaser from 'phaser';
 import { generateTextures } from '../textures/generateTextures';
 import { CHARACTERS } from '../data/characters';
-import proj2 from '../assets/main-menu/proj2.png';
-import collectSfx from '../assets/sounds/collect.mp3';
-import jumpSfx from '../assets/sounds/jump.mp3';
-import ouchFemaleSfx from '../assets/sounds/ouch_female.mp3';
-import ouchMaleSfx from '../assets/sounds/ouch_male.mp3';
-import parrySfx from '../assets/sounds/parry.mp3';
-import shootSfx from '../assets/sounds/shoot.mp3';
-import victorySfx from '../assets/sounds/victory.mp3';
-import villain1Sfx from '../assets/sounds/villain-1.mp3';
-import villain2Sfx from '../assets/sounds/villain-2.mp3';
-import villain3Sfx from '../assets/sounds/villain-3.mp3';
-import villain4Sfx from '../assets/sounds/villain-4.mp3';
-import villain5Sfx from '../assets/sounds/villain-5.mp3';
-import villainDefeatedSfx from '../assets/sounds/villain-defeated.mp3';
+
+const ASSET_PREFIX = '/assets';
+const proj2 = `${ASSET_PREFIX}/main-menu/proj2.png`;
+const collectSfx = `${ASSET_PREFIX}/sounds/collect.mp3`;
+const jumpSfx = `${ASSET_PREFIX}/sounds/jump.mp3`;
+const ouchFemaleSfx = `${ASSET_PREFIX}/sounds/ouch_female.mp3`;
+const ouchMaleSfx = `${ASSET_PREFIX}/sounds/ouch_male.mp3`;
+const parrySfx = `${ASSET_PREFIX}/sounds/parry.mp3`;
+const shootSfx = `${ASSET_PREFIX}/sounds/shoot.mp3`;
+const victorySfx = `${ASSET_PREFIX}/sounds/victory.mp3`;
+const villain1Sfx = `${ASSET_PREFIX}/sounds/villain-1.mp3`;
+const villain2Sfx = `${ASSET_PREFIX}/sounds/villain-2.mp3`;
+const villain3Sfx = `${ASSET_PREFIX}/sounds/villain-3.mp3`;
+const villain4Sfx = `${ASSET_PREFIX}/sounds/villain-4.mp3`;
+const villain5Sfx = `${ASSET_PREFIX}/sounds/villain-5.mp3`;
+const villainDefeatedSfx = `${ASSET_PREFIX}/sounds/villain-defeated.mp3`;
 import {
   BACKGROUND_ASSETS,
   FLOOR_HAZARD_ASSETS,
@@ -55,29 +57,31 @@ export class PreloadScene extends Phaser.Scene {
     BACKGROUND_ASSETS.forEach((source, index) => this.load.image(`office-background-${index + 1}`, source));
 
     // Main menu assets
-    this.load.image('mainmenu-background', 'assets/main-menu/mainmenu_background.jpg');
-    this.load.image('mainmenu-logo', 'assets/main-menu/mainmenu_logo.png');
-    this.load.image('mainmenu-controls', 'assets/main-menu/mainmenu_controls.png');
-    this.load.image('mainmenu-leaderboard', 'assets/main-menu/mainmenu_leaderboard.png');
-    this.load.image('mainmenu-start', 'assets/main-menu/mainmenu_start.png');
+    this.load.image('mainmenu-background', `${ASSET_PREFIX}/main-menu/mainmenu_background.jpg`);
+    this.load.image('mainmenu-logo', `${ASSET_PREFIX}/main-menu/mainmenu_logo.png`);
+    this.load.image('mainmenu-controls', `${ASSET_PREFIX}/main-menu/mainmenu_controls.png`);
+    this.load.image('mainmenu-leaderboard', `${ASSET_PREFIX}/main-menu/mainmenu_leaderboard.png`);
+    this.load.image('mainmenu-start', `${ASSET_PREFIX}/main-menu/mainmenu_start.png`);
     this.load.image('mainmenu-proj2', proj2);
-    this.load.image('icon-mute', 'assets/main-menu/mute.png');
-    this.load.image('icon-unmute', 'assets/main-menu/unmute.png');
-    this.load.image('gameOverStamp', 'assets/game-over/game-over.png');
+    this.load.image('icon-fullscreen', `${ASSET_PREFIX}/main-menu/full-screen.png`);
+    this.load.image('icon-revert', `${ASSET_PREFIX}/main-menu/revert.png`);
+    this.load.image('icon-mute', `${ASSET_PREFIX}/main-menu/mute.png`);
+    this.load.image('icon-unmute', `${ASSET_PREFIX}/main-menu/unmute.png`);
+    this.load.image('gameOverStamp', `${ASSET_PREFIX}/game-over/game-over.png`);
 
     // HUD icons
-    this.load.image('hud-icon-age', 'assets/hud/icons/age.png');
-    this.load.image('hud-icon-rank', 'assets/hud/icons/rank.png');
-    this.load.image('hud-icon-highlight', 'assets/hud/icons/highlight.png');
-    this.load.image('hud-icon-setback', 'assets/hud/icons/setback.png');
+    this.load.image('hud-icon-age', `${ASSET_PREFIX}/hud/icons/age.png`);
+    this.load.image('hud-icon-rank', `${ASSET_PREFIX}/hud/icons/rank.png`);
+    this.load.image('hud-icon-highlight', `${ASSET_PREFIX}/hud/icons/highlight.png`);
+    this.load.image('hud-icon-setback', `${ASSET_PREFIX}/hud/icons/setback.png`);
 
     // Main menu sounds
-    this.load.audio('menu', 'assets/sounds/menu.mp3');
-    this.load.audio('game-music', 'assets/sounds/game-music.mp3');
-    this.load.audio('game-sfx', 'assets/sounds/game-sfx.mp3');
-    this.load.audio('boss', 'assets/sounds/boss.mp3');
-    this.load.audio('whiteboard-sound', 'assets/sounds/whiteboard-sound.mp3');
-    this.load.audio('sfx-swish', 'assets/sounds/swish.mp3');
+    this.load.audio('menu', `${ASSET_PREFIX}/sounds/menu.mp3`);
+    this.load.audio('game-music', `${ASSET_PREFIX}/sounds/game-music.mp3`);
+    this.load.audio('game-sfx', `${ASSET_PREFIX}/sounds/game-sfx.mp3`);
+    this.load.audio('boss', `${ASSET_PREFIX}/sounds/boss.mp3`);
+    this.load.audio('whiteboard-sound', `${ASSET_PREFIX}/sounds/whiteboard-sound.mp3`);
+    this.load.audio('sfx-swish', `${ASSET_PREFIX}/sounds/swish.mp3`);
     this.load.audio('collect', collectSfx);
     this.load.audio('jump', jumpSfx);
     this.load.audio('ouch_female', ouchFemaleSfx);
@@ -93,16 +97,16 @@ export class PreloadScene extends Phaser.Scene {
     this.load.audio('villain-defeated', villainDefeatedSfx);
 
     // Boss encounter poses (128x128, facing left, transparent backgrounds)
-    this.load.image('boss-idle', 'assets/boss/PNG/Poses/idle.png');
-    this.load.image('boss-idle2', 'assets/boss/PNG/Poses/idle 2.png');
-    this.load.image('boss-walk1', 'assets/boss/PNG/Poses/walk 1.png');
-    this.load.image('boss-walk2', 'assets/boss/PNG/Poses/walk 2.png');
-    this.load.image('boss-telegraph', 'assets/boss/PNG/Poses/telegraph.png');
-    this.load.image('boss-attack', 'assets/boss/PNG/Poses/attack.png');
-    this.load.image('boss-staggered', 'assets/boss/PNG/Poses/staggered.png');
-    this.load.image('boss-fall1', 'assets/boss/PNG/Poses/fall_1.png');
-    this.load.image('boss-fall2', 'assets/boss/PNG/Poses/fall_2.png');
-    this.load.image('boss-defeated', 'assets/boss/PNG/Poses/defeated.png');
+    this.load.image('boss-idle', `${ASSET_PREFIX}/boss/PNG/Poses/idle.png`);
+    this.load.image('boss-idle2', `${ASSET_PREFIX}/boss/PNG/Poses/idle 2.png`);
+    this.load.image('boss-walk1', `${ASSET_PREFIX}/boss/PNG/Poses/walk 1.png`);
+    this.load.image('boss-walk2', `${ASSET_PREFIX}/boss/PNG/Poses/walk 2.png`);
+    this.load.image('boss-telegraph', `${ASSET_PREFIX}/boss/PNG/Poses/telegraph.png`);
+    this.load.image('boss-attack', `${ASSET_PREFIX}/boss/PNG/Poses/attack.png`);
+    this.load.image('boss-staggered', `${ASSET_PREFIX}/boss/PNG/Poses/staggered.png`);
+    this.load.image('boss-fall1', `${ASSET_PREFIX}/boss/PNG/Poses/fall_1.png`);
+    this.load.image('boss-fall2', `${ASSET_PREFIX}/boss/PNG/Poses/fall_2.png`);
+    this.load.image('boss-defeated', `${ASSET_PREFIX}/boss/PNG/Poses/defeated.png`);
   }
 
   create(): void {

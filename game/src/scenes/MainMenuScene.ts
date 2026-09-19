@@ -4,6 +4,7 @@ import { createButton } from '../ui/createButton';
 import { CHARACTERS, getCharacterById } from '../data/characters';
 import { GameState } from '../state/GameState';
 import { CharacterCarousel } from '../ui/CharacterCarousel';
+import { isFullscreenSupported, toggleFullScreen } from '../fullscreen';
 
 const ICON_WIDTH_PCT = 0.06;
 const ICON_EDGE_PADDING = 12;
@@ -22,6 +23,7 @@ export class MainMenuScene extends Phaser.Scene {
   private mainMenuSound?: Phaser.Sound.BaseSound;
   private leaderboardIcon!: Phaser.GameObjects.Image;
   private controlsIcon!: Phaser.GameObjects.Image;
+  private fullscreenIcon!: Phaser.GameObjects.Image;
   private musicToggleIcon!: Phaser.GameObjects.Image;
   private controlsDimmer?: Phaser.GameObjects.Rectangle;
 
@@ -86,6 +88,12 @@ export class MainMenuScene extends Phaser.Scene {
     startButton.on('pointerdown', () => this.startGame());
     startButton.setDepth(20);
 
+    this.fullscreenIcon = this.add.image(0, 0, document.fullscreenElement ? 'icon-revert' : 'icon-fullscreen');
+    this.fullscreenIcon.setInteractive({ useHandCursor: true });
+    this.fullscreenIcon.setScale(0.6);
+    this.fullscreenIcon.on('pointerdown', () => void this.toggleFullscreen());
+    this.fullscreenIcon.setDepth(30);
+
     // 5. Leaderboard icon (top-right)
     this.leaderboardIcon = this.add.image(0, 0, 'mainmenu-leaderboard');
     this.leaderboardIcon.setInteractive({ useHandCursor: true });
@@ -102,10 +110,12 @@ export class MainMenuScene extends Phaser.Scene {
     this.musicToggleIcon.on('pointerdown', () => this.toggleMenuMusic());
     this.musicToggleIcon.setDepth(30);
     this.scale.on(Phaser.Scale.Events.RESIZE, this.layout, this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.scale.off(Phaser.Scale.Events.RESIZE, this.layout, this);
+    });
 
     // Create proj2 image (whiteboard) with fixed scale to preserve aspect ratio
     this.proj2Image = this.add.image(0, height / 2, 'mainmenu-proj2');
-    this.proj2Image.setScale(0.94);
 
     // Position "just out of frame" — based on the image's own (scaled) width,
     // not the full canvas width, so it's just past the left edge rather than
@@ -195,8 +205,28 @@ export class MainMenuScene extends Phaser.Scene {
           event.preventDefault();
           this.startGame();
           break;
+        case 'KeyF':
+          event.preventDefault();
+          void this.toggleFullscreen();
+          break;
       }
     });
+  }
+
+  private async toggleFullscreen(): Promise<void> {
+    if (!isFullscreenSupported()) return;
+
+    try {
+      await toggleFullScreen();
+      this.syncFullscreenIcon();
+    } catch {
+      // Ignore browser restrictions, such as when fullscreen is denied.
+    }
+  }
+
+  private syncFullscreenIcon(): void {
+    if (!this.fullscreenIcon || !this.fullscreenIcon.scene) return;
+    this.fullscreenIcon.setTexture(document.fullscreenElement ? 'icon-revert' : 'icon-fullscreen');
   }
 
   private rotateCarousel(direction: 1 | -1): void {
@@ -232,32 +262,62 @@ export class MainMenuScene extends Phaser.Scene {
     (this.mainMenuSound as Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound | undefined)?.setVolume(
       musicMuted ? 0 : MENU_MUSIC_VOLUME
     );
-    this.musicToggleIcon.setTexture(musicMuted ? 'icon-mute' : 'icon-unmute');
+    if (this.musicToggleIcon && this.musicToggleIcon.scene) {
+      this.musicToggleIcon.setTexture(musicMuted ? 'icon-mute' : 'icon-unmute');
+    }
   }
 
   private layout(): void {
+    if (!this.scale || !this.scene || !this.sys || !this.sys.game) return;
+
     const { width, height } = this.scale;
     const iconWidth = width * ICON_WIDTH_PCT;
+    const fullscreenIconWidth = iconWidth * (0.5);
 
-    this.controlsDimmer?.setPosition(width / 2, height / 2).setSize(width, height);
+    if (this.controlsDimmer && this.controlsDimmer.scene) {
+      this.controlsDimmer.setPosition(width / 2, height / 2).setSize(width, height);
+    }
 
     for (const icon of [this.leaderboardIcon, this.controlsIcon, this.musicToggleIcon]) {
+      if (!icon || !icon.scene) continue;
       icon.setDisplaySize(iconWidth, (icon.height / icon.width) * iconWidth);
     }
-    this.musicToggleIcon.setDisplaySize(iconWidth / 2, (this.musicToggleIcon.height / this.musicToggleIcon.width) * (iconWidth / 2));
+
+    if (this.fullscreenIcon && this.fullscreenIcon.scene) {
+      this.fullscreenIcon.setDisplaySize(fullscreenIconWidth, (this.fullscreenIcon.height / this.fullscreenIcon.width) * fullscreenIconWidth);
+    }
+    if (this.musicToggleIcon && this.musicToggleIcon.scene) {
+      this.musicToggleIcon.setDisplaySize(iconWidth / 2, (this.musicToggleIcon.height / this.musicToggleIcon.width) * (iconWidth / 2));
+    }
+
+    if (!this.controlsIcon || !this.controlsIcon.scene) {
+      return;
+    }
 
     this.controlsIcon.setPosition(
       this.controlsIcon.displayWidth / 2 + ICON_EDGE_PADDING,
       this.controlsIcon.displayHeight / 2 + ICON_EDGE_PADDING
     );
-    this.leaderboardIcon.setPosition(
-      width - this.leaderboardIcon.displayWidth / 2 - ICON_EDGE_PADDING,
-      this.leaderboardIcon.displayHeight / 2 + ICON_EDGE_PADDING
-    );
-    this.musicToggleIcon.setPosition(
-      width - this.musicToggleIcon.displayWidth / 2 - ICON_EDGE_PADDING,
-      height - this.musicToggleIcon.displayHeight / 2 - ICON_EDGE_PADDING
-    );
+
+    if (this.fullscreenIcon && this.fullscreenIcon.scene) {
+      this.fullscreenIcon.setPosition(
+        this.fullscreenIcon.displayWidth / 2 + ICON_EDGE_PADDING,
+        height - this.fullscreenIcon.displayHeight / 2 - ICON_EDGE_PADDING
+      );
+    }
+    if (this.leaderboardIcon && this.leaderboardIcon.scene) {
+      this.leaderboardIcon.setPosition(
+        width - this.leaderboardIcon.displayWidth / 2 - ICON_EDGE_PADDING,
+        this.leaderboardIcon.displayHeight / 2 + ICON_EDGE_PADDING
+      );
+    }
+    if (this.musicToggleIcon && this.musicToggleIcon.scene) {
+      this.musicToggleIcon.setPosition(
+        width - this.musicToggleIcon.displayWidth / 2 - ICON_EDGE_PADDING,
+        height - this.musicToggleIcon.displayHeight / 2 - ICON_EDGE_PADDING
+      );
+    }
+    this.syncFullscreenIcon();
   }
 
   shutdown(): void {

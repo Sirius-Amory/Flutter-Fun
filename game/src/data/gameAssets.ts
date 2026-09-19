@@ -1,24 +1,26 @@
-import cert from '../assets/tokens/cert.png';
-import fb from '../assets/tokens/fb.png';
-import funProject from '../assets/tokens/fun_project.png';
-import goodRating from '../assets/tokens/good_rating.png';
-import newSkill from '../assets/tokens/new_skill.png';
-import officeRomance from '../assets/tokens/office_romance.png';
-import payRise from '../assets/tokens/pay_rise.png';
-import promotion from '../assets/tokens/promotion.png';
-import promotionOpportunity from '../assets/tokens/promotion_opportunity.png';
-import badRating from '../assets/projectiles/bad_rating.png';
-import corporateBs from '../assets/projectiles/corp_bs.png';
-import deadline from '../assets/projectiles/deadline.png';
-import divorce from '../assets/projectiles/divorce.png';
-import meeting from '../assets/projectiles/meeting.png';
-import redundancies from '../assets/projectiles/redundancies.png';
-import scopeCreep from '../assets/projectiles/scope_creep.png';
-import background1 from '../assets/background/bg_1.jpg';
-import background2 from '../assets/background/bg_2.jpg';
-import background3 from '../assets/background/bg_3.jpg';
-import background4 from '../assets/background/bg_4.jpg';
-import background5 from '../assets/background/bg_5.jpg';
+const ASSET_PREFIX = '/assets';
+
+const cert = `${ASSET_PREFIX}/tokens/cert.png`;
+const fb = `${ASSET_PREFIX}/tokens/fb.png`;
+const funProject = `${ASSET_PREFIX}/tokens/fun_project.png`;
+const goodRating = `${ASSET_PREFIX}/tokens/good_rating.png`;
+const newSkill = `${ASSET_PREFIX}/tokens/new_skill.png`;
+const officeRomance = `${ASSET_PREFIX}/tokens/office_romance.png`;
+const payRise = `${ASSET_PREFIX}/tokens/pay_rise.png`;
+const promotion = `${ASSET_PREFIX}/tokens/promotion.png`;
+const promotionOpportunity = `${ASSET_PREFIX}/tokens/promotion_opportunity.png`;
+const badRating = `${ASSET_PREFIX}/projectiles/bad_rating.png`;
+const corporateBs = `${ASSET_PREFIX}/projectiles/corp_bs.png`;
+const deadline = `${ASSET_PREFIX}/projectiles/deadline.png`;
+const divorce = `${ASSET_PREFIX}/projectiles/divorce.png`;
+const meeting = `${ASSET_PREFIX}/projectiles/meeting.png`;
+const redundancies = `${ASSET_PREFIX}/projectiles/redundancies.png`;
+const scopeCreep = `${ASSET_PREFIX}/projectiles/scope_creep.png`;
+const background1 = `${ASSET_PREFIX}/background/bg_1.jpg`;
+const background2 = `${ASSET_PREFIX}/background/bg_2.jpg`;
+const background3 = `${ASSET_PREFIX}/background/bg_3.jpg`;
+const background4 = `${ASSET_PREFIX}/background/bg_4.jpg`;
+const background5 = `${ASSET_PREFIX}/background/bg_5.jpg`;
 
 export const FLOOR_HAZARD_ASSETS = [
   { key: 'floor-boxes', source: 'assets/floor-sprites/boxes.png' },

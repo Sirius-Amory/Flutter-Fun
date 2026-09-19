@@ -22,6 +22,7 @@ import { playSfx } from '../audio/SfxManager';
 import { isMusicMuted } from '../audio/MusicManager';
 import { createLeaderboardService } from './GameOverScene';
 import { BossEncounter } from './BossEncounter';
+import { shouldTriggerVictoryAfterBossVictory } from './bossVictory';
 
 const WORLD_HEIGHT = 900;
 const WORLD_TOP_Y = 0;
@@ -507,6 +508,8 @@ export class SurviveScene extends Phaser.Scene {
 
   /** Applies the rank/state change on boss victory. Called by BossEncounter via callback. */
   private applyVictory(targetRankIndex: number): void {
+    const shouldFinalVictory = shouldTriggerVictoryAfterBossVictory(this.state.rankIndex, targetRankIndex);
+
     this.state.rankIndex = targetRankIndex;
     this.state.resetHits(); // full health on promotion
     this.state.resetTokens();
@@ -519,9 +522,15 @@ export class SurviveScene extends Phaser.Scene {
     eventBus.emit(GameEvents.RankChanged, rank);
     eventBus.emit(GameEvents.AgeChanged, rank.age);
     eventBus.emit(GameEvents.TokensChanged, { count: 0, needed: rank.tokensToPromote });
+
+    if (shouldFinalVictory) {
+      this.triggerVictory();
+    }
   }
 
   private resumeNormalGameplay(): void {
+    if (this.isEnding) return;
+
     this.startGameplayMusic();
 
     const camera = this.cameras.main;

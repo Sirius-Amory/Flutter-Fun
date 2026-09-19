@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { isFullscreenSupported, toggleFullScreen } from '../fullscreen';
 import { createButton } from '../ui/createButton';
 
 export class PauseScene extends Phaser.Scene {
@@ -32,12 +33,27 @@ export class PauseScene extends Phaser.Scene {
 
     createButton(this, centerX, centerY - 50, 'Resume', () => this.resumeGame());
     createButton(this, centerX, centerY + 10, 'Controls', () => this.toggleControls());
-    createButton(this, centerX, centerY + 70, 'Quit', () => this.quitGame());
+    if (isFullscreenSupported()) {
+      createButton(this, centerX, centerY + 70, 'Fullscreen', () => void this.toggleFullscreen());
+    }
+    createButton(this, centerX, centerY + 120, 'Quit', () => this.quitGame());
 
     this.input.keyboard?.on('keydown-ESC', this.handleEscape, this);
+    this.input.keyboard?.on('keydown-F', () => void this.toggleFullscreen());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off('keydown-ESC', this.handleEscape, this);
+      this.input.keyboard?.off('keydown-F', () => void this.toggleFullscreen());
     });
+  }
+
+  private async toggleFullscreen(): Promise<void> {
+    if (!isFullscreenSupported()) return;
+
+    try {
+      await toggleFullScreen();
+    } catch {
+      // Ignore browser restrictions, such as when fullscreen is denied.
+    }
   }
 
   private toggleControls(): void {

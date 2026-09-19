@@ -6,7 +6,6 @@ import { getNextGameOverCause } from './gameOverMessages';
 /**
  * ---- Integration points ----
  * 1. Preload the stamp image somewhere in your Boot/Preload scene:
- *      this.load.image('gameOverStamp', 'assets/images/game-over-stamp.png');
  *
  * 2. Wire your real Azure Functions client into LeaderboardService below
  *    (getTopScores = GET, submitScore = POST) and pass it in when you
