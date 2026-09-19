@@ -116,6 +116,7 @@ export class MainMenuScene extends Phaser.Scene {
 
     // Create proj2 image (whiteboard) with fixed scale to preserve aspect ratio
     this.proj2Image = this.add.image(0, height / 2, 'mainmenu-proj2');
+    this.proj2Image.setScale(1.15);
 
     // Position "just out of frame" — based on the image's own (scaled) width,
     // not the full canvas width, so it's just past the left edge rather than
