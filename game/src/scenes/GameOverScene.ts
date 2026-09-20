@@ -174,7 +174,7 @@ export class GameOverScene extends Phaser.Scene {
     status.destroy();
 
     this.add
-      .text(width / 2, height * 0.58, `You ${this.causeOfDeath} at ${this.age} as a ${this.rankLabel}`, {
+      .text(width / 2, height * 0.58, `You ${this.causeOfDeath}`, {
         fontFamily: FONT_FAMILY,
         fontSize: '22px',
         color: '#db170d',
